@@ -1,0 +1,359 @@
+#
+# Infrastructure template for Wordpress on two separate instances (webserver
+# and database), plus all network infrastructure.
+#
+# DNS pre-configured for the Porirua (nz-por-1) region of the Catalyst Cloud.
+#
+heat_template_version: 2013-05-23
+
+description: >
+  Infrastructure template for Wordpress on two separate instances (webserver
+  and database), plus all network infrastructure.
+
+parameter_groups:
+- label: Infrastructure
+  description: Infrastructure configuration
+  parameters:
+  - key_name
+  - image
+  - public_net
+  - public_net_id
+  - private_net_name
+  - private_net_cidr
+  - private_net_gateway
+  - private_net_pool_start
+  - private_net_pool_end
+  - private_net_dns_servers
+  - router_name
+- label: Web server
+  description: Web server configuration
+  parameters:
+  - web_servers_flavor
+- label: Database
+  description: Database configuration
+  parameters:
+  - db_servers_flavor
+  - db_name
+  - db_username
+  - db_password
+  - db_root_password
+
+parameters:
+  key_name:
+    type: string
+    description: Name of an existing key pair to use for the server
+    constraints:
+      - custom_constraint: nova.keypair
+
+  web_servers_flavor:
+    type: string
+    description: Flavour for the web servers
+    default: c1.c1r1
+    constraints:
+      - custom_constraint: nova.flavor
+
+  db_servers_flavor:
+    type: string
+    description: Flavour for the database servers
+    default: c1.c1r1
+    constraints:
+      - custom_constraint: nova.flavor
+
+  image:
+    type: string
+    description: Image ID or image name to use for the server
+    default: ubuntu-14.04-x86_64
+    constraints:
+      - custom_constraint: glance.image
+
+  public_net:
+    type: string
+    description: >
+      ID or name of public network for which floating IP addresses will be allocated
+    default: public-net
+
+  public_net_id:
+    type: string
+    description: >
+      ID of public network for which floating IP addresses will be allocated
+    default: 849ab1e9-7ac5-4618-8801-e6176fbbcf30
+
+  private_net_name:
+    type: string
+    description: Name of private network to be created
+    default: private-net
+
+  private_net_cidr:
+    type: string
+    description: Private network address (CIDR notation)
+    default: 192.168.0.0/24
+
+  private_net_gateway:
+    type: string
+    description: Private network gateway address
+    default: 192.168.0.1
+
+  private_net_pool_start:
+    type: string
+    description: Start of private network IP address allocation pool
+    default: 192.168.0.10
+
+  private_net_pool_end:
+    type: string
+    description: End of private network IP address allocation pool
+    default: 192.168.0.250
+
+  private_net_dns_servers:
+    type: comma_delimited_list
+    description: DNS servers for the private network
+    default: [ 202.78.247.197, 202.78.247.198, 202.78.247.199 ]
+
+  router_name:
+    type: string
+    description: >
+      Name of the router that will connect the private and public networks
+    default: border-router
+
+  db_name:
+    type: string
+    description: WordPress database name
+    default: wordpress
+    constraints:
+      - length: { min: 1, max: 64 }
+        description: db_name must be between 1 and 64 characters
+      - allowed_pattern: '[a-zA-Z][a-zA-Z0-9]*'
+        description: >
+          db_name must begin with a letter and contain only alphanumeric
+          characters
+
+  db_username:
+    type: string
+    description: The WordPress database admin account username
+    default: admin
+    hidden: true
+    constraints:
+      - length: { min: 1, max: 16 }
+        description: db_username must be between 1 and 16 characters
+      - allowed_pattern: '[a-zA-Z][a-zA-Z0-9]*'
+        description: >
+          db_username must begin with a letter and contain only alphanumeric
+          characters
+
+  db_password:
+    type: string
+    description: The WordPress database admin account password
+    default: admin
+    hidden: true
+    constraints:
+      - length: { min: 1, max: 41 }
+        description: db_password must be between 1 and 41 characters
+      - allowed_pattern: '[a-zA-Z0-9]*'
+        description: db_password must contain only alphanumeric characters
+
+  db_root_password:
+    type: string
+    description: Root password for MySQL
+    default: admin
+    hidden: true
+    constraints:
+      - length: { min: 1, max: 41 }
+        description: db_root_password must be between 1 and 41 characters
+      - allowed_pattern: '[a-zA-Z0-9]*'
+        description: db_root_password must contain only alphanumeric characters
+
+
+resources:
+  private_net:
+    type: OS::Neutron::Net
+    properties:
+      name: { get_param: private_net_name }
+
+  private_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      network_id: { get_resource: private_net }
+      cidr: { get_param: private_net_cidr }
+      gateway_ip: { get_param: private_net_gateway }
+      allocation_pools:
+        - start: { get_param: private_net_pool_start }
+          end: { get_param: private_net_pool_end }
+      dns_nameservers: { get_param: private_net_dns_servers }
+
+  router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info:
+        network: { get_param: public_net }
+      name: { get_param: router_name }
+
+  router_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet_id: { get_resource: private_subnet }
+
+  webserver1:
+    type: OS::Nova::Server
+    properties:
+      name: webserver1
+      image: { get_param: image }
+      flavor: { get_param: web_servers_flavor }
+      key_name: { get_param: key_name }
+      block_device_mapping:
+        - device_name: vda
+          volume_id: { get_resource: webserver1-rootvol }
+          delete_on_termination: false
+      networks:
+        - port: { get_resource: webserver1_port }
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash -v
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update
+            apt-get -y install wordpress
+            ln -s /usr/share/wordpress /var/www/html/wordpress
+            cp /var/www/html/wordpress/wp-config-sample.php /var/www/html/wordpress/wp-config.php
+            sed -i "/Deny from All/d" /var/www/html/wordpress/wp-config.php
+            sed -i "s/Require local/Require all granted/" /var/www/html/wordpress/wp-config.php
+            sed -i s/database_name_here/db_name/ /var/www/html/wordpress/wp-config.php
+            sed -i s/username_here/db_user/      /var/www/html/wordpress/wp-config.php
+            sed -i s/password_here/db_password/  /var/www/html/wordpress/wp-config.php
+            sed -i s/localhost/db_ipaddr/        /var/www/html/wordpress/wp-config.php
+          params:
+            db_name: { get_param: db_name }
+            db_user: { get_param: db_username }
+            db_password: { get_param: db_password }
+            db_ipaddr: { get_attr: [ dbserver1, first_address ] }
+    depends_on: dbserver1
+
+  webserver1-rootvol:
+    type: OS::Cinder::Volume
+    properties:
+      name: webserver1-rootvol
+      image: { get_param: image }
+      size: 15
+
+  webserver1_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_resource: private_net }
+      fixed_ips:
+        - subnet_id: { get_resource: private_subnet }
+      security_groups:
+        - { get_resource: secgroup_webservers }
+
+  webserver1_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+#      Floating network not supported in IceHouse
+#      floating_network: { get_param: public_net }
+      floating_network_id: { get_param: public_net_id }
+      port_id: { get_resource: webserver1_port }
+    depends_on: router_interface
+
+  secgroup_webservers:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: webservers
+      description: HTTP, HTTPS, SSH
+      rules:
+        - direction: ingress
+          protocol: tcp
+          remote_ip_prefix: 0.0.0.0/0
+          port_range_min: 80
+          port_range_max: 80
+        - direction: ingress
+          protocol: tcp
+          remote_ip_prefix: 0.0.0.0/0
+          port_range_min: 443
+          port_range_max: 443
+        - direction: ingress
+          protocol: tcp
+          remote_ip_prefix: 0.0.0.0/0
+          port_range_min: 22
+          port_range_max: 22
+
+  dbserver1:
+    type: OS::Nova::Server
+    properties:
+      name: dbserver1
+      image: { get_param: image }
+      flavor: { get_param: db_servers_flavor }
+      key_name: { get_param: key_name }
+      block_device_mapping:
+        - device_name: vda
+          volume_id: { get_resource: dbserver1-rootvol }
+          delete_on_termination: false
+      networks:
+        - port: { get_resource: dbserver1_port }
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash -v
+            apt-get update
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get -y install mariadb-server
+            mysqladmin -u root password db_rootpassword
+            cat << EOF | mysql -u root --password=db_rootpassword
+            CREATE DATABASE db_name;
+            GRANT ALL PRIVILEGES ON db_name.* TO "db_user"@"%"
+            IDENTIFIED BY "db_password";
+            FLUSH PRIVILEGES;
+            EXIT
+            EOF
+            sed -i s/127.0.0.1/0.0.0.0/ /etc/mysql/my.cnf
+            service mysql restart
+          params:
+            db_rootpassword: { get_param: db_root_password }
+            db_name: { get_param: db_name }
+            db_user: { get_param: db_username }
+            db_password: { get_param: db_password }
+
+  dbserver1-rootvol:
+    type: OS::Cinder::Volume
+    properties:
+      name: dbserver1-rootvol
+      image: { get_param: image }
+      size: 15
+
+  dbserver1_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_resource: private_net }
+      fixed_ips:
+        - subnet_id: { get_resource: private_subnet }
+      security_groups:
+        - { get_resource: secgroup_dbservers }
+
+  secgroup_dbservers:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: dbservers
+      description: MYSQL
+      rules:
+        - direction: ingress
+          protocol: tcp
+          remote_group_id: { get_resource: secgroup_webservers }
+          remote_mode: remote_group_id
+          port_range_min: 3306
+          port_range_max: 3306
+
+outputs:
+  wordpress_url:
+    description: Wordpress URL
+    value:
+      str_replace:
+        template: http://host/wordpress
+        params:
+          host: { get_attr: [ webserver1_floating_ip, floating_ip_address ] }
+  webserver1_private_ip:
+    description: IP address of webserver1 in private network
+    value: { get_attr: [ webserver1, first_address ] }
+  webserver1_public_ip:
+    description: Floating IP address of webserver1 in public network
+    value: { get_attr: [ webserver1_floating_ip, floating_ip_address ] }
+  dbserver1_private_ip:
+    description: IP address of dbserver1 in private network
+    value: { get_attr: [ dbserver1, first_address ] }
+
