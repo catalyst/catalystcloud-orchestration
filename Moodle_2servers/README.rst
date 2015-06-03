@@ -31,10 +31,10 @@ At the moment the following parameters are defined:
 
 The next three parameters follow the naming scheme used in the e-learning team at Catalyst for self-host setup and are used primarily to christen the databases and the $SITEENVIRONMENT variable
 
-* site_name: (default catcloud)
-* environment: (default test)
-* app_type: (default moodle) 
+* site_name: e.g. catcloud
+* environment: e.g. test
+* app_type: e.g. moodle 
 
-* site_url: the site_url. You need to make sure that this resolves either locally or globally since at the moment the Moodle site will not be accessible via IP (default: moodle-heat.elearning.catalyst.net.nz)
-* moodle_version: a valid Moodle branch number. Assigned to env variable MOODLEVERSION and used to create the remote branch name as MOODLE_"$MOODLEVERSION"_STABLE. Current default: 27
+* site_url: the site_url. You need to make sure that this resolves either locally or globally since at the moment the Moodle site will not be accessible via IP.
+* moodle_version: a valid Moodle branch number. Assigned to env variable MOODLEVERSION and used to create the remote branch name as MOODLE_"$MOODLEVERSION"_STABLE.
 * db_root_password: insert your DB root password here 
