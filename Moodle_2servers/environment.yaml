@@ -1,13 +1,14 @@
 parameters:
-  key_name: <your key name here>
+  key_name: < your key name >
   image: ubuntu-14.04-x86_64
   servers_flavor: c1.c1r1
   public_net_id: <ID of the public net for your region> 
-  private_net_dns_servers < comma-separated list of DNS server IPs >
+  private_net_dns_servers: < comma-separated list of DNS server IPs >
+  ssh_ip_cidr: < originating network for SSH connections >
   site_name: catcloud
   environment: test
   app_type: moodle
   site_url: moodle-heat.elearning.catalyst.net.nz
   moodle_version: 29
-  db_root_password: <your DB root password here>
+  db_root_password: < your DB root password >
 
