@@ -46,7 +46,6 @@ parameters:
     description: Name of an existing key pair to use for the server
     constraints:
       - custom_constraint: nova.keypair
-    default: cristiano
 
   servers_flavor:
     type: string
