@@ -24,12 +24,17 @@ At the moment the following parameters are defined:
 
 * key_name: you must set this to your tenancy key name
 * image: the image name (default: ubuntu-14.04-x86_64)
-* servers_flavor: the instance size (default: c1.c1r1) 
+* servers_flavor: the instance size (default: c1.c1r1)
+* public_net_id: ID of the public net for your region 
+* private_net_dns_servers: comma-separated list of DNS server IPs
+* ssh_ip_cidr: originating network for SSH connections in CIDR format
 
 The next three parameters follow the naming scheme used in the e-learning team at Catalyst for self-host setup and are used primarily to christen the databases and the $SITEENVIRONMENT variable
 
 * site_name: (default catcloud)
 * environment: (default test)
 * app_type: (default moodle) 
+
 * site_url: the site_url. You need to make sure that this resolves either locally or globally since at the moment the Moodle site will not be accessible via IP (default: moodle-heat.elearning.catalyst.net.nz)
-* moodle_version: a valid Moodle branch number. Assigned to env variable MOODLEVERSION and used to create the remote branch name as MOODLE_"$MOODLEVERSION"_STABLE. Current default: 27 
+* moodle_version: a valid Moodle branch number. Assigned to env variable MOODLEVERSION and used to create the remote branch name as MOODLE_"$MOODLEVERSION"_STABLE. Current default: 27
+* db_root_password: insert your DB root password here 
