@@ -17,6 +17,7 @@ parameter_groups:
   - public_net_id
   - private_net_name
   - private_net_cidr
+  - ssh_ip_cidr
   - private_net_gateway
   - private_net_pool_start
   - private_net_pool_end
@@ -131,7 +132,6 @@ parameters:
   moodle_version:
     type: string
     description: Moodle version
-    default: 27
 
 
 # Database
