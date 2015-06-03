@@ -1,8 +1,6 @@
 #
 # Infrastructure template for Moodle on two instances plus all network infrastructure.
 #
-# DNS pre-configured for the Porirua (nz-por-1) region of the Catalyst Cloud.
-#
 
 heat_template_version: 2013-05-23
 
@@ -71,7 +69,6 @@ parameters:
     type: string
     description: >
       ID of public network for which floating IP addresses will be allocated
-    default: 849ab1e9-7ac5-4618-8801-e6176fbbcf30
  
   private_net_name:
     type: string
@@ -101,7 +98,6 @@ parameters:
   private_net_dns_servers:
     type: comma_delimited_list
     description: DNS servers for the private network
-    default: [ 202.78.247.197, 202.78.247.198, 202.78.247.199 ]
 
   router_name:
     type: string
