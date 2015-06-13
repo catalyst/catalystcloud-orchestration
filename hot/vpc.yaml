@@ -12,8 +12,6 @@ parameter_groups:
 - label: VPC
   description: VPC configuration
   parameters:
-  - key_name
-  - image
   - public_net
   - public_net_id
   - private_net_name
