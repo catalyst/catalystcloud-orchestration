@@ -1,0 +1,105 @@
+#
+# VPC template for the Catalyst Cloud with DNS pre-configured for the Porirua
+# (nz-por-1) region.
+#
+heat_template_version: 2013-05-23
+
+description: >
+  VPC template for the Catalyst cloud with DNS pre-configure for the Porirua
+  (nz-por-1) region.
+
+parameter_groups:
+- label: VPC
+  description: VPC configuration
+  parameters:
+  - key_name
+  - image
+  - public_net
+  - public_net_id
+  - private_net_name
+  - private_net_cidr
+  - private_net_gateway
+  - private_net_pool_start
+  - private_net_pool_end
+  - private_net_dns_servers
+  - router_name
+
+parameters:
+  public_net:
+    type: string
+    description: >
+      Name of public network
+    default: public-net
+
+  public_net_id:
+    type: string
+    description: >
+      ID of public network
+    default: 849ab1e9-7ac5-4618-8801-e6176fbbcf30
+
+  private_net_name:
+    type: string
+    description: Name of private network to be created
+    default: private-net
+
+  private_net_cidr:
+    type: string
+    description: Private network address (CIDR notation)
+    default: 192.168.0.0/24
+
+  private_net_gateway:
+    type: string
+    description: Private network gateway address
+    default: 192.168.0.1
+
+  private_net_pool_start:
+    type: string
+    description: Start of private network IP address allocation pool
+    default: 192.168.0.10
+
+  private_net_pool_end:
+    type: string
+    description: End of private network IP address allocation pool
+    default: 192.168.0.250
+
+  private_net_dns_servers:
+    type: comma_delimited_list
+    description: DNS servers for the private network
+    default: [ 202.78.247.197, 202.78.247.198, 202.78.247.199 ]
+
+  router_name:
+    type: string
+    description: >
+      Name of the router that will connect the private and public networks
+    default: border-router
+
+resources:
+  private_net:
+    type: OS::Neutron::Net
+    properties:
+      name: { get_param: private_net_name }
+
+  private_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      network_id: { get_resource: private_net }
+      cidr: { get_param: private_net_cidr }
+      gateway_ip: { get_param: private_net_gateway }
+      allocation_pools:
+        - start: { get_param: private_net_pool_start }
+          end: { get_param: private_net_pool_end }
+      dns_nameservers: { get_param: private_net_dns_servers }
+
+  router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info:
+        network: { get_param: public_net }
+      name: { get_param: router_name }
+
+  router_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet_id: { get_resource: private_subnet }
+
