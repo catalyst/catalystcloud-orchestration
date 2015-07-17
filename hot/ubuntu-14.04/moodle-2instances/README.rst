@@ -5,7 +5,7 @@ At the moment the template has no ambition at being robust, elegant or productio
 This folder contains the following files:
 
 * environment.yaml: the environment file
-* Moodle_2servers.yaml: the HEAT template
+* moodle_2servers.yaml: the HEAT template
 * postgres.sh: Bash script used to create the RDBMS
 * webserver.sh: Bash script used to install the webserver, download and install Moodle and configure Apache/Nginx
 * README.rst: this README file
