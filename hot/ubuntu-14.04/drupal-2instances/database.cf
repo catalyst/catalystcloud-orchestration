@@ -24,11 +24,6 @@ fs_setup:
 mounts:
  - [ /dev/vdb, /var/lib/mysql, auto ]
 
-# Format and mount the additional volume
-#runcmd:
-# - [ mkfs.ext4 /dev/vdb ]
-# - [ mount /dev/vdb /var/lib/mysql ]
-
 # Install packages
 packages:
  - git

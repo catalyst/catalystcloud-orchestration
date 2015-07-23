@@ -104,8 +104,6 @@ key_buffer                     = 16M
 EOF
 ) | sudo tee /etc/mysql/my.cnf
 
-# TODO: Use additional volume for mysql database
-
 # Restart the database to apply the configuration
 sudo service mysql restart
 
@@ -129,6 +127,8 @@ EOF
 ) | sudo mysql -u root -h 127.0.0.1
 
 # To connect to the database from the webserver host: mysql -h ${PRIVATE_IP} -u ${USER} -p
+
+# TODO: Allow to import existing Drupal database
 
 #---------
 # Backups

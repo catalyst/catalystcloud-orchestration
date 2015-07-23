@@ -118,6 +118,8 @@ sudo useradd -N -g drupal --shell /bin/bash --create-home --home /home/drupal dr
 drush dl drupal-7.x
 sudo mv drupal-7.x-dev /var/www/drupal
 
+# TODO: Allow to import existing codebase from git repository
+
 # Secure it with the appropriate permissions
 sudo chown -R drupal.drupal /var/www/drupal
 sudo chgrp www-data /var/www/drupal/sites/default
