@@ -1,0 +1,283 @@
+#
+# Infrastructure template for Drupal on two separate instances (webserver and
+# database).
+#
+# This template assumes you have a pre-configured VPC and a single network.
+#
+heat_template_version: 2013-05-23
+
+description: >
+  Infrastructure template for Drupal on two separate instances (webserver and
+  database).
+
+parameters:
+  public_net:
+    type: string
+    description: ID of the public network
+    default: 849ab1e9-7ac5-4618-8801-e6176fbbcf30
+
+  private_net:
+    type: string
+    description: ID of the private network where instances will be created
+
+  key_name:
+    type: string
+    description: Name of an existing key pair to use for the server
+    constraints:
+      - custom_constraint: nova.keypair
+
+  image:
+    type: string
+    description: Image ID or image name to use for the server
+    default: ubuntu-14.04-x86_64
+    constraints:
+      - custom_constraint: glance.image
+
+  domain_name:
+    type: string
+    description: Domain name of the organisation
+    default: localdomain
+
+  web_servers_flavor:
+    type: string
+    description: Flavour for the web servers
+    default: c1.c1r1
+    constraints:
+      - custom_constraint: nova.flavor
+
+  drupal_user:
+    type: string
+    description: Drupal admin user
+    default: admin
+    hidden: true
+    constraints:
+      - length: { min: 1, max: 16 }
+        description: drupal_username must be between 1 and 16 characters
+      - allowed_pattern: '[a-zA-Z][a-zA-Z0-9]*'
+        description: >
+          drupal_username must begin with a letter and contain only alphanumeric
+          characters
+
+  drupal_password:
+    type: string
+    description: Drupal admin account password
+    default: admin
+    hidden: true
+
+  db_servers_flavor:
+    type: string
+    description: Flavour for the database servers
+    default: c1.c1r1
+    constraints:
+      - custom_constraint: nova.flavor
+
+  db_name:
+    type: string
+    description: Drupal database name
+    default: drupal
+    constraints:
+      - length: { min: 1, max: 64 }
+        description: db_name must be between 1 and 64 characters
+      - allowed_pattern: '[a-zA-Z][a-zA-Z0-9]*'
+        description: >
+          db_name must begin with a letter and contain only alphanumeric
+          characters
+
+  db_username:
+    type: string
+    description: Drupal database admin account username
+    default: drupal
+    hidden: true
+    constraints:
+      - length: { min: 1, max: 16 }
+        description: db_username must be between 1 and 16 characters
+      - allowed_pattern: '[a-zA-Z][a-zA-Z0-9]*'
+        description: >
+          db_username must begin with a letter and contain only alphanumeric
+          characters
+
+#  db_password:
+#    type: string
+#    description: Drupal database admin account password
+#    default: dbpassword
+#    hidden: true
+
+resources:
+  webserver_config:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config:
+        str_replace:
+          template: { get_file: webserver.cf }
+          params:
+            domain_name: { get_param: domain_name }
+
+  webserver_software:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config:
+        str_replace:
+          template: { get_file: webserver.sh }
+          params:
+            domain_name: { get_param: domain_name }
+            drupal_user: { get_param: drupal_user }
+            drupal_password: { get_param: drupal_password }
+            db_user: { get_param: db_username }
+            db_password: { get_attr: [ db_password, value ] }
+            db_ipaddr: { get_attr: [ dbserver, first_address ] }
+            db_name: { get_param: db_name }
+
+  webserver_init:
+    type: OS::Heat::MultipartMime
+    properties:
+      parts:
+        - config: { get_resource: webserver_config }
+        - config: { get_resource: webserver_software }
+
+  webserver:
+    type: OS::Nova::Server
+    properties:
+      name: webserver
+      image: { get_param: image }
+      flavor: { get_param: web_servers_flavor }
+      key_name: { get_param: key_name }
+      networks:
+        - port: { get_resource: webserver_port }
+      user_data_format: RAW
+      user_data: { get_resource: webserver_init }
+    depends_on: dbserver
+
+  secgroup_webserver:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: webserver
+      description: HTTP, HTTPS, SSH
+      rules:
+        - direction: ingress
+          protocol: tcp
+          remote_ip_prefix: 0.0.0.0/0
+          port_range_min: 80
+          port_range_max: 80
+        - direction: ingress
+          protocol: tcp
+          remote_ip_prefix: 0.0.0.0/0
+          port_range_min: 443
+          port_range_max: 443
+        - direction: ingress
+          protocol: tcp
+          remote_ip_prefix: 0.0.0.0/0
+          port_range_min: 22
+          port_range_max: 22
+
+  webserver_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_param: private_net }
+      security_groups:
+        - { get_resource: secgroup_webserver }
+
+  webserver_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network_id: { get_param: public_net }
+      port_id: { get_resource: webserver_port }
+
+  db_password:
+    type: OS::Heat::RandomString
+
+  database_config:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config:
+        str_replace:
+          template: { get_file: database.cf }
+          params:
+            domain_name: { get_param: domain_name }
+
+  database_software:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config:
+        str_replace:
+          template: { get_file: database.sh }
+          params:
+            domain_name: { get_param: domain_name }
+            drupal_user: { get_param: drupal_user }
+            drupal_password: { get_param: drupal_password }
+            db_user: { get_param: db_username }
+            db_password: { get_attr: [ db_password, value ] }
+            db_name: { get_param: db_name }
+
+  database_init:
+    type: OS::Heat::MultipartMime
+    properties:
+      parts:
+        - config: { get_resource: database_config }
+        - config: { get_resource: database_software }
+
+  dbserver:
+    type: OS::Nova::Server
+    properties:
+      name: dbserver
+      image: { get_param: image }
+      flavor: { get_param: db_servers_flavor }
+      key_name: { get_param: key_name }
+      networks:
+        - port: { get_resource: dbserver_port }
+      user_data_format: RAW
+      user_data: { get_resource: database_init }
+ 
+  dbserver_dbvol:
+    type: OS::Cinder::Volume
+    properties:
+      name: dbserver-dbvol
+      size: 10
+
+  dbserver_dbvol_attachment:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      volume_id: { get_resource: dbserver_dbvol }
+      instance_uuid: { get_resource: dbserver }
+      mountpoint: /dev/vdb
+
+  dbserver_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_param: private_net }
+      security_groups:
+        - { get_resource: secgroup_mysql }
+
+  secgroup_mysql:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: mysql
+      description: MySQL access from web servers
+      rules:
+        - direction: ingress
+          protocol: tcp
+          remote_group_id: { get_resource: secgroup_webserver }
+          remote_mode: remote_group_id
+          port_range_min: 3306
+          port_range_max: 3306
+
+outputs:
+  drupal_url:
+    description: Drupal URL
+    value:
+      str_replace:
+        template: http://host
+        params:
+          host: { get_attr: [ webserver_floating_ip, floating_ip_address ] }
+  webserver_private_ip:
+    description: IP address of webserver in private network
+    value: { get_attr: [ webserver, first_address ] }
+  webserver_public_ip:
+    description: Floating IP address of webserver in public network
+    value: { get_attr: [ webserver_floating_ip, floating_ip_address ] }
+  dbserver_private_ip:
+    description: IP address of dbserver in private network
+    value: { get_attr: [ dbserver, first_address ] }
+  drupal_db_password:
+    description: Drupal database password
+    value: { get_attr: [ db_password, value ] }
+
