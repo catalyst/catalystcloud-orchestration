@@ -78,7 +78,7 @@ parameters:
     constraints:
       - length: { min: 1, max: 64 }
         description: db_name must be between 1 and 64 characters
-      - allowed_pattern: '[a-zA-Z][a-zA-Z0-9]*'
+      - allowed_pattern: '[a-zA-Z][a-zA-Z0-9_]*'
         description: >
           db_name must begin with a letter and contain only alphanumeric
           characters
