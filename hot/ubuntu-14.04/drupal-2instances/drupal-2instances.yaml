@@ -45,6 +45,11 @@ parameters:
     constraints:
       - custom_constraint: nova.flavor
 
+  drupal_source:
+    type: string
+    description: Where to fetch the Drupal source code from (drush or git repo)
+    default: drush
+
   drupal_user:
     type: string
     description: Drupal admin user
@@ -63,11 +68,6 @@ parameters:
     description: Drupal admin account password
     default: admin
     hidden: true
-
-  drupal_source:
-    type: string
-    description: Git repo to fetch source the code from (drush = clean install)
-    default: drush
 
   db_servers_flavor:
     type: string
