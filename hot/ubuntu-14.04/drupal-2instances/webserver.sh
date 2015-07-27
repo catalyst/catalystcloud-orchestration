@@ -114,11 +114,16 @@ sudo groupadd drupal
 # -g: add user to group
 sudo useradd -N -g drupal --shell /bin/bash --create-home --home /home/drupal drupal
 
-# Deploy the Drupal 7 codebase
-drush dl drupal-7.x
-sudo mv drupal-7.x-dev /var/www/drupal
+DRUPAL_SOURCE="drupal_source"
 
-# TODO: Allow to import existing codebase from git repository
+# Deploy the Drupal 7 codebase from drush or git repo
+if [[ "${DRUPAL_SOURCE}" == "drush" ]]; then
+  drush dl drupal-7.x
+  sudo mv drupal-7.x-dev /var/www/drupal
+else
+  git clone ${DRUPAL_SOURCE} drupal
+  sudo mv drupal /var/www/drupal
+fi
 
 # Secure it with the appropriate permissions
 sudo chown -R drupal.drupal /var/www/drupal
@@ -133,7 +138,9 @@ sudo cp /var/www/drupal/sites/default/default.settings.php /var/www/drupal/sites
 sudo chown drupal.drupal /var/www/drupal/sites/default/settings.php
 sudo chmod 644 /var/www/drupal/sites/default/settings.php
 
-# Perform the automated site install process
-cd /var/www/drupal
-sudo drush -y site-install standard --account-name=drupal_user --account-pass=drupal_password --db-url=mysql://db_user:db_password@db_ipaddr/db_name
+# If this is a new install, then perform the automated site install process
+if [[ "${DRUPAL_SOURCE}" == "drush" ]]; then
+  cd /var/www/drupal
+  sudo drush -y site-install standard --account-name=drupal_user --account-pass=drupal_password --db-url=mysql://db_user:db_password@db_ipaddr/db_name
+fi
 

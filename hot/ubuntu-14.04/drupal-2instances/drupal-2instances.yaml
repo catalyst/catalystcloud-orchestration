@@ -64,6 +64,11 @@ parameters:
     default: admin
     hidden: true
 
+  drupal_source:
+    type: string
+    description: Git repo to fetch source the code from (drush = clean install)
+    default: drush
+
   db_servers_flavor:
     type: string
     description: Flavour for the database servers
@@ -122,6 +127,7 @@ resources:
             domain_name: { get_param: domain_name }
             drupal_user: { get_param: drupal_user }
             drupal_password: { get_param: drupal_password }
+            drupal_source: { get_param: drupal_source }
             db_user: { get_param: db_username }
             db_password: { get_attr: [ db_password, value ] }
             db_ipaddr: { get_attr: [ dbserver, first_address ] }
