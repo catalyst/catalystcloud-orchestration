@@ -144,3 +144,12 @@ if [[ "${DRUPAL_SOURCE}" == "drush" ]]; then
   sudo drush -y site-install standard --account-name=drupal_user --account-pass=drupal_password --db-url=mysql://db_user:db_password@db_ipaddr/db_name
 fi
 
+# Set up Drupal's cron job to run daily
+(cat << EOF
+#!/bin/bash
+sudo su - drupal -c "cd /var/www/drupal && drush cron"
+EOF
+) | sudo tee /etc/cron.daily/drupal-cron
+
+sudo chmod +x /etc/cron.daily/drupal-cron
+
