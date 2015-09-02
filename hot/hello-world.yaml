@@ -21,7 +21,7 @@ parameters:
   image:
     type: string
     description: Image ID or image name to use for the server
-    default: cirros-0.3.1-x86_64
+    default: ubuntu-14.04-x86_64
     constraints:
       - custom_constraint: glance.image
 
