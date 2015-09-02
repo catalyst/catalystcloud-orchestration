@@ -1,0 +1,245 @@
+#
+# HOT template for building a Keepalived/Apache VRRP stack in the Catalyst
+# Cloud (nz-por-1) region.
+#
+heat_template_version: 2013-05-23
+
+description: >
+  HOT template for building a Keepalived/Apache VRRP stack in the Catalyst
+  Cloud (nz-por-1) region.
+
+parameter_groups:
+- label: VRRP
+  description: VRRP configuration
+  parameters:
+  - key_name
+  - public_net
+  - public_net_id
+  - private_net_name
+  - private_subnet_name
+  - private_net_cidr
+  - private_net_gateway
+  - private_net_pool_start
+  - private_net_pool_end
+  - private_net_dns_servers
+  - router_name
+  - vrrp_shared_ip
+  - vrrp_secgroup_name
+
+parameters:
+
+  key_name:
+    type: string
+    description: Name of an existing key pair to use for the server
+    default: vrrp-demo-key
+    constraints:
+      - custom_constraint: nova.keypair
+  servers_flavor:
+    type: string
+    description: Flavour for the servers
+    default: c1.c1r1
+    constraints:
+      - custom_constraint: nova.flavor
+  image:
+    type: string
+    description: Image ID or image name to use for the server
+    default: ubuntu-14.04-x86_64
+    constraints:
+      - custom_constraint: glance.image
+  public_net:
+    type: string
+    description: >
+      Name of public network
+    default: public-net
+
+  public_net_id:
+    type: string
+    description: >
+      ID of public network
+    default: 849ab1e9-7ac5-4618-8801-e6176fbbcf30
+
+  private_net_name:
+    type: string
+    description: Name of private network to be created
+    default: vrrp-net
+
+  private_subnet_name:
+    type: string
+    description: Name of private subnetwork to be created
+    default: vrrp-subnet
+
+  private_net_cidr:
+    type: string
+    description: Private network address (CIDR notation)
+    default: 10.0.0.0/24
+
+  private_net_gateway:
+    type: string
+    description: Private network gateway address
+    default: 10.0.0.1
+
+  private_net_pool_start:
+    type: string
+    description: Start of private network IP address allocation pool
+    default: 10.0.0.2
+
+  private_net_pool_end:
+    type: string
+    description: End of private network IP address allocation pool
+    default: 10.0.0.200
+
+  private_net_dns_servers:
+    type: comma_delimited_list
+    description: DNS servers for the private network
+    default: [ 202.78.247.197, 202.78.247.198, 202.78.247.199 ]
+
+  router_name:
+    type: string
+    description: >
+      Name of the router that will connect the private and public networks
+    default: vrrp-router
+
+  vrrp_shared_ip:
+    type: string
+    description: Fixed ip of virtual router that will be shared by the keepalived instances.
+    default: 10.0.0.201
+
+  vrrp_secgroup_name:
+    type: string
+    description: Name of the VRRP Security Group
+    default: vrrp-sec-group
+
+resources:
+
+  private_net:
+    type: OS::Neutron::Net
+    properties:
+      name: { get_param: private_net_name }
+
+  private_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      name: { get_param: private_subnet_name }
+      network_id: { get_resource: private_net }
+      cidr: { get_param: private_net_cidr }
+      gateway_ip: { get_param: private_net_gateway }
+      allocation_pools:
+        - start: { get_param: private_net_pool_start }
+          end: { get_param: private_net_pool_end }
+      dns_nameservers: { get_param: private_net_dns_servers }
+
+  router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info:
+        network: { get_param: public_net }
+      name: { get_param: router_name }
+
+  router_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet_id: { get_resource: private_subnet }
+
+  vrrp_secgroup:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: { get_param: vrrp_secgroup_name }
+      description: Security group for VRRP Instances
+      rules:
+        - direction: ingress
+          protocol: 112
+          remote_group_id:
+          remote_mode: remote_group_id
+        - direction: ingress
+          protocol: icmp
+          remote_ip_prefix: 0.0.0.0/0
+        - direction: ingress
+          protocol: tcp
+          remote_ip_prefix: 0.0.0.0/0
+          port_range_min: 22
+          port_range_max: 22
+        - direction: ingress
+          protocol: tcp
+          remote_ip_prefix: 0.0.0.0/0
+          port_range_min: 80
+          port_range_max: 80
+
+  vrrp_shared_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_resource: private_net }
+      fixed_ips:
+        - ip_address: { get_param: vrrp_shared_ip }
+
+  vrrp_shared_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network_id: { get_param: public_net_id }
+      port_id: { get_resource: vrrp_shared_port }
+    depends_on: router_interface
+
+  vrrp_master_server:
+    type: OS::Nova::Server
+    properties:
+      name: vrrp-master
+      image: { get_param: image }
+      flavor: { get_param: servers_flavor }
+      key_name: { get_param: key_name }
+      user_data_format: RAW
+      networks:
+        - port: { get_resource: vrrp_master_server_port }
+      user_data:
+        get_file: vrrp-setup.sh
+
+  vrrp_master_server_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_resource: private_net }
+      allowed_address_pairs:
+        - ip_address: { get_param: vrrp_shared_ip }
+      fixed_ips:
+        - subnet_id: { get_resource: private_subnet }
+          ip_address: 10.0.0.4
+      security_groups:
+        - { get_resource: vrrp_secgroup }
+
+  vrrp_master_server_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network_id: { get_param: public_net_id }
+      port_id: { get_resource: vrrp_master_server_port }
+    depends_on: router_interface
+
+  vrrp_backup_server:
+    type: OS::Nova::Server
+    properties:
+      name: vrrp-backup
+      image: { get_param: image }
+      flavor: { get_param: servers_flavor }
+      key_name: { get_param: key_name }
+      user_data_format: RAW
+      networks:
+        - port: { get_resource: vrrp_backup_server_port }
+      user_data:
+        get_file: vrrp-setup.sh
+    depends_on: vrrp_master_server
+
+  vrrp_backup_server_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_resource: private_net }
+      allowed_address_pairs:
+        - ip_address: { get_param: vrrp_shared_ip }
+      fixed_ips:
+        - subnet_id: { get_resource: private_subnet }
+          ip_address: 10.0.0.5
+      security_groups:
+        - { get_resource: vrrp_secgroup }
+
+  vrrp_backup_server_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network_id: { get_param: public_net_id }
+      port_id: { get_resource: vrrp_backup_server_port }
+    depends_on: router_interface
