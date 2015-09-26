@@ -40,8 +40,8 @@ sudo openssl req -x509 -nodes -days 365 -subj '/CN=webserver.domain_name' -newke
     <Directory /var/www/drupal>
         AllowOverride All
     </Directory>
-    ErrorLog ${APACHE_LOG_DIR}/error.log
-    CustomLog ${APACHE_LOG_DIR}/access.log combined
+    ErrorLog \${APACHE_LOG_DIR}/error.log
+    CustomLog \${APACHE_LOG_DIR}/access.log combined
 </VirtualHost>
 EOF
 ) | sudo tee /etc/apache2/sites-available/000-default.conf
@@ -62,8 +62,8 @@ EOF
         <Directory /usr/lib/cgi-bin>
                         SSLOptions +StdEnvVars
         </Directory>
-        BrowserMatch "MSIE [2-6]" \
-                        nokeepalive ssl-unclean-shutdown \
+        BrowserMatch "MSIE [2-6]" \\
+                        nokeepalive ssl-unclean-shutdown \\
                         downgrade-1.0 force-response-1.0
         BrowserMatch "MSIE [17-9]" ssl-unclean-shutdown
     </VirtualHost>
