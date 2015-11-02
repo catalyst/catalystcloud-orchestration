@@ -27,6 +27,8 @@ At the moment the following parameters are defined:
 * servers_flavor: the instance size (default: c1.c1r1)
 * public_net_id: ID of the public net for your region 
 * private_net_dns_servers: comma-separated list of DNS server IPs
+* private_net_name: the name of your private net
+* router_name: the name of your router
 * ssh_ip_cidr: originating network for SSH connections in CIDR format
 
 The next three parameters follow the naming scheme used in the e-learning team at Catalyst for self-host setup and are used primarily to christen the databases and the $SITEENVIRONMENT variable
