@@ -1,11 +1,7 @@
-#
-# Infrastructure template for Moodle on two instances plus all network infrastructure.
-#
-
 heat_template_version: 2013-05-23
 
 description: >
-  Infrastructure template for Moodle on two instances plus all network infrastructure.
+  Infrastructure template for Moodle/Totara on two instances plus all network infrastructure.
 parameter_groups:
 - label: Infrastructure
   description: Infrastructure configuration
@@ -23,14 +19,15 @@ parameter_groups:
   - private_net_pool_end
   - private_net_dns_servers
   - router_name
-- label: Moodle
-  description: Moodle instance configuration
+- label: MoodleTotara
+  description: Moodle/Totara instance configuration
   parameters:
   - site_name
   - environment
   - app_type
   - site_url
-  - moodle_version
+  - git_repo
+  - git_branch
 - label: Database
   description: Database configuration
   parameters:
@@ -70,7 +67,7 @@ parameters:
     type: string
     description: >
       ID of public network for which floating IP addresses will be allocated
- 
+
   private_net_name:
     type: string
     description: Name of private network to be created
@@ -108,9 +105,9 @@ parameters:
     type: string
     description: >
       Name of the router that will connect the private and public networks
-    default: moodle-router
+    default: moodletotara-router
 
-# Moodle configuration
+# Moodle/Totara configuration
 
   site_name:
     type: string
@@ -119,7 +116,7 @@ parameters:
   environment:
     type: string
     description: The value of the $ENVIRONMENT variable
-    default: 
+    default:
 
   app_type:
     type: string
@@ -129,10 +126,15 @@ parameters:
     type: string
     description: The site URL
 
-  moodle_version:
+  git_repo:
     type: string
-    description: Moodle version
+    description: Your git repo
+    default: git://git.moodle.org/moodle.git
 
+  git_branch:
+    type: string
+    description: Your git branch
+    default: MOODLE_29_STABLE
 
 # Database
 
@@ -259,7 +261,8 @@ resources:
             site_url: { get_param: site_url }
             dbserver_ip: { get_attr: [ postgres_server, first_address ] }
             db_rootpassword: { get_param: db_root_password }
-            moodle_version: { get_param: moodle_version }
+            git_repo: { get_param: git_repo }
+            git_branch: { get_param: git_branch }
     depends_on: postgres_server
 
   webserver_rootvol:
@@ -282,7 +285,7 @@ resources:
     type: OS::Neutron::SecurityGroup
     properties:
       name: webservers
-      description: Moodle
+      description: Moodle/Totara
       rules:
         - direction: ingress
           protocol: tcp
