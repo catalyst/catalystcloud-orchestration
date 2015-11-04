@@ -11,10 +11,11 @@ export DEBIAN_FRONTEND=noninteractive
 export SITENAME=site_name
 export ENVIRONMENT=environment
 export APPTYPE=app_type
+export GITREPO=git_repo
+export GITBRANCH=git_branch
 export URL=site_url
 export DBSERVERIP=dbserver_ip
 export PGPASSWORD=db_rootpassword
-export MOODLEVERSION=moodle_version
 export SITEENVIRONMENT=$SITENAME-$ENVIRONMENT-$APPTYPE
 # Web server setup
 # Create user groups and give sudo rights
@@ -47,7 +48,7 @@ sudo apt-key advanced --keyserver pgp.net.nz --recv-keys 2CA4EE29621846D9
 echo 'APT::Install-Recommends "0";' >> /etc/apt/apt.conf.d/90install-recommends
 sudo apt-get update
 # Configure silent installs of postfix and pgdumper
-sudo debconf-set-selections <<< "postfix postfix/mailname string moodle-heat"
+sudo debconf-set-selections <<< "postfix postfix/mailname string moodletotara-heat"
 sudo debconf-set-selections <<< "postfix postfix/main_mailer_type string 'Internet Site'"
 sudo debconf-set-selections <<< "pgdumper pgdumper/backupcopies string 5"
 sudo debconf-set-selections <<< "pgdumper pgdumper/annoy string null@catalyst.net.nz"
@@ -56,8 +57,8 @@ sudo debconf-set-selections <<< "pgdumper pgdumper/skipdb string "
 sudo apt-get  -y  --fix-missing install apache2 libapache2-mod-php5 php5-pgsql cron php5-cli aspell \
 php5-curl php5-xmlrpc php5-gd php5-intl php5-imagick file git-core \
 graphviz bsd-mailx libapache2-mod-rpaf pgdumper aexec postgresql-client
-sed -i "s/upload_max_filesize = [[:alnum:]]/upload_max_filesize = 512M/"  /etc/php5/apache2/php.ini 
-sed -i "s/post_max_size = [[:alnum:]]/post_max_size = 518M/"  /etc/php5/apache2/php.ini 
+sed -i "s/upload_max_filesize = [[:alnum:]]/upload_max_filesize = 512M/"  /etc/php5/apache2/php.ini
+sed -i "s/post_max_size = [[:alnum:]]/post_max_size = 518M/"  /etc/php5/apache2/php.ini
 # Make a bunch of directories we will need
 for DIR in "/var/www" "/var/log/sitelogs" "/var/lib/codesrc/"; do
     sudo mkdir $DIR -p
@@ -111,25 +112,26 @@ export WEBSERVERIP=`ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ pri
 # Do a clone & quick tidyup, and checkout
 sudo chmod g+w /var/www/$SITEENVIRONMENT
 # Do a git clone as you, and a git checkout as www-code.
-MOODLEBRANCH="MOODLE_"$MOODLEVERSION"_STABLE"
 cd /var/www/$SITEENVIRONMENT
-git clone git://git.moodle.org/moodle.git .
+git clone $GITREPO .
 # Pack directories need to be owned by deploystaff, with group sticky bit set, so files that later get created in them (due to updates) maintain the same group ownership.
 sudo chown www-code:deploystaff /var/www/$SITEENVIRONMENT/ -R
 sudo find /var/www/$SITEENVIRONMENT/.git -type d -exec chmod g+s {} \;
 sudo find /var/www/$SITEENVIRONMENT/.git -exec chmod g+w {} \;
 sudo -u www-code -g deploystaff git branch -a
-sudo -u www-code -g deploystaff git branch --track $MOODLEBRANCH origin/$MOODLEBRANCH
-sudo -u www-code -g deploystaff git checkout $MOODLEBRANCH
+sudo -u www-code -g deploystaff git branch --track $GITBRANCH origin/$GITBRANCH
+sudo -u www-code -g deploystaff git checkout $GITBRANCH
+
+APPVERSION=$(grep "\$branch" /var/www/$SITEENVIRONMENT/version.php | awk '{print $3}' | sed "s/'//g" | sed "s/;//g")
 
 # Copy the config-dist to config.php & fill in values
 sudo -u www-code cp config-dist.php config.php
 sed -i "s|$CFG->dbhost    = 'localhost';|$CFG->dbhost    = '$DBSERVERIP';|" config.php
-sed -i "s|$CFG->dbname    = 'moodle';|$CFG->dbname    = '$SITEENVIRONMENT';|" config.php
+sed -i "s|^\$CFG->dbname.*=.*$|\$CFG->dbname    = '$SITEENVIRONMENT';|" config.php
 sed -i "s|$CFG->dbuser    = 'username';|$CFG->dbuser    = '$SITEENVIRONMENT';|" config.php
 sed -i "s|$CFG->dbpass    = 'password';|$CFG->dbpass    = '$PGPASSWORD';|" config.php
-sed -i "s|$CFG->wwwroot   = 'http://example.com/moodle';|$CFG->wwwroot   = 'https://$URL';|" config.php
-sed -i "s|$CFG->dataroot  = '/home/example/moodledata';|$CFG->dataroot   = '/var/lib/sitedata/$SITEENVIRONMENT';|" config.php
+sed -i "s|^\$CFG->wwwroot.*=.*;$|\$CFG->wwwroot   = 'https://$URL';|" config.php
+sed -i "s|^\$CFG->dataroot.*=.*;$|\$CFG->dataroot   = '/var/lib/sitedata/$SITEENVIRONMENT';|" config.php
 sed -i "s|//[ ]*\$CFG->sslproxy = true;|      \$CFG->sslproxy = true;|" config.php
 
 # Set site defaults
@@ -147,14 +149,14 @@ sudo chown www-code:deploystaff /var/www/$SITEENVIRONMENT/local/defaults.php
 sudo -u www-data php /var/www/$SITEENVIRONMENT/admin/cli/install_database.php \
 --agree-license=yes --adminuser=admin --adminpass=$PGPASSWORD --adminemail='null@catalyst.net.nz' --fullname=$SITENAME --shortname=$SITENAME 
 # For versions lower than 2.9, adminemail is not an install option, so do a manual Db update
-if [ $MOODLEVERSION -lt 29 ]
+if [[ $APPVERSION < 29 ]]
 then
  psql -h $DBSERVERIP -U $SITEENVIRONMENT   $SITEENVIRONMENT -c "update mdl_user set email='null@catalyst.net.nz' where username LIKE 'admin';"
 fi
-# Install nginx 
+# Install nginx
 sudo apt-get -y install nginx
 
-# make some files & links for nginx: 
+# make some files & links for nginx:
 
 sudo mkdir /etc/nginx/maintenance
 sudo touch /etc/nginx/maintenance/maintenancemodeoff.conf
