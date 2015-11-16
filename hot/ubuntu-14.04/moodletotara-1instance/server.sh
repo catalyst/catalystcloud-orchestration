@@ -182,7 +182,7 @@ sudo apt-get -y install openssl
 cd /etc/nginx/ssl
 sudo openssl genrsa -out $SITEENVIRONMENT.key 2048
 sudo chmod 400 $SITEENVIRONMENT.key
-sudo openssl req -new -key $SITEENVIRONMENT.key -out $SITEENVIRONMENT.csr -subj '/C=NZ/CN=$URL/'
+sudo openssl req -new -key $SITEENVIRONMENT.key -out $SITEENVIRONMENT.csr -subj '/C=NZ/CN='"$URL"'/'
 sudo openssl x509 -req -days 1096 -in $SITEENVIRONMENT.csr -signkey $SITEENVIRONMENT.key -out $SITEENVIRONMENT.crt
 sudo cat $SITEENVIRONMENT.crt > $SITEENVIRONMENT.chain
 sudo cp $SITEENVIRONMENT.crt $SITEENVIRONMENT.crtchain
