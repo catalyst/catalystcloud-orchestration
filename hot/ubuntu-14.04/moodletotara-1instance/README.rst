@@ -1,4 +1,4 @@
-This directory contains the files used to set up a Moodle/Totara stack on one instances using PostgreSQL as the RDBMS and Nginx as the front-end proxy. It also creates a dedicated subnet and router and appropriate interfaces to permit communication between front- and back-end using the private subnet and a public IP for accessing the webserver. Access rules are in place to allow sshing onto the webserver from the Catalyst subnet.
+This directory contains the files used to set up a Moodle/Totara stack on one instance using PostgreSQL as the RDBMS and Nginx as the front-end proxy. It also creates a dedicated subnet and router and appropriate interfaces to permit communication between front- and back-end using the private subnet and a public IP for accessing the webserver. Access rules are in place to allow sshing onto the webserver from the Catalyst subnet.
 
 At the moment the template has no ambition at being robust, elegant or production-grade. I am not a developer so YMMV. The main aim of the work is to demonstrate that the setup of a Moodle/Totara instance on the Catalyst Cloud can be automated/orchestrated.
 
