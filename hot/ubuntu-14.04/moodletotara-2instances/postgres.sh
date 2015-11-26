@@ -1,17 +1,18 @@
 #!/bin/bash -v
+# Set up shell variables
+export DEBIAN_FRONTEND=noninteractive
+export SITENAME=site_name
+export SERVERNAME=$SITENAME-"dbserver"
+export ENVIRONMENT=environment
+export APPTYPE=app_type
+export SITEENVIRONMENT=$SITENAME-$ENVIRONMENT-$APPTYPE
 # Add server name to host file
-echo "127.0.0.1 pg-dbserver" >> /etc/hosts
+echo "127.0.0.1 $SERVERNAME" >> /etc/hosts
 # Redirect output to syslog
 exec 1> >(logger -s -t $(basename $0)) 2>&1
 # Set timezone
 echo "Pacific/Auckland NZ" | sudo tee /etc/timezone
 sudo dpkg-reconfigure --frontend noninteractive tzdata
-# Set up shell variables
-export DEBIAN_FRONTEND=noninteractive
-export SITENAME=site_name
-export ENVIRONMENT=environment
-export APPTYPE=app_type
-export SITEENVIRONMENT=$SITENAME-$ENVIRONMENT-$APPTYPE
 # DATABASE
 # Install PostgreSQL, modify config files, restart and create database and user
 echo 'APT::Install-Recommends "0";' >> /etc/apt/apt.conf.d/90install-recommends

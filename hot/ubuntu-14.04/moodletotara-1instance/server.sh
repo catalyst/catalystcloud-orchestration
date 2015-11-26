@@ -1,14 +1,8 @@
 #!/bin/bash -v
-# Add server name to host file
-echo "127.0.0.1 server" >> /etc/hosts
-# Redirect output to syslog
-exec 1> >(logger -s -t $(basename $0)) 2>&1
-# Set timezone
-echo "Pacific/Auckland NZ" | sudo tee /etc/timezone
-sudo dpkg-reconfigure --frontend noninteractive tzdata
 # Set up shell variables
 export DEBIAN_FRONTEND=noninteractive
 export SITENAME=site_name
+export SERVERNAME=$SITENAME-"server"
 export ENVIRONMENT=environment
 export APPTYPE=app_type
 export GITREPO=git_repo
@@ -16,7 +10,13 @@ export GITBRANCH=git_branch
 export URL=site_url
 export PGPASSWORD=db_rootpassword
 export SITEENVIRONMENT=$SITENAME-$ENVIRONMENT-$APPTYPE
-
+# Add server name to host file
+echo "127.0.0.1 $SERVERNAME" >> /etc/hosts
+# Redirect output to syslog
+exec 1> >(logger -s -t $(basename $0)) 2>&1
+# Set timezone
+echo "Pacific/Auckland NZ" | sudo tee /etc/timezone
+sudo dpkg-reconfigure --frontend noninteractive tzdata
 # DATABASE
 # Install PostgreSQL, modify config files, restart and create database and user
 echo 'APT::Install-Recommends "0";' >> /etc/apt/apt.conf.d/90install-recommends

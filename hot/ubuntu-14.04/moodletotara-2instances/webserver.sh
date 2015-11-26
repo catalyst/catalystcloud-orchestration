@@ -1,14 +1,8 @@
 #!/bin/bash -v
-# Add server name to host file
-echo "127.0.0.1 webserver" >> /etc/hosts
-# Redirect output to syslog
-exec 1> >(logger -s -t $(basename $0)) 2>&1
-# Set timezone
-echo "Pacific/Auckland NZ" | sudo tee /etc/timezone
-sudo dpkg-reconfigure --frontend noninteractive tzdata
 # Set up shell variables
 export DEBIAN_FRONTEND=noninteractive
 export SITENAME=site_name
+export SERVERNAME=$SITENAME-"webserver"
 export ENVIRONMENT=environment
 export APPTYPE=app_type
 export GITREPO=git_repo
@@ -17,6 +11,13 @@ export URL=site_url
 export DBSERVERIP=dbserver_ip
 export PGPASSWORD=db_rootpassword
 export SITEENVIRONMENT=$SITENAME-$ENVIRONMENT-$APPTYPE
+# Add server name to host file
+echo "127.0.0.1 $SERVERNAME" >> /etc/hosts
+# Redirect output to syslog
+exec 1> >(logger -s -t $(basename $0)) 2>&1
+# Set timezone
+echo "Pacific/Auckland NZ" | sudo tee /etc/timezone
+sudo dpkg-reconfigure --frontend noninteractive tzdata
 # Web server setup
 # Create user groups and give sudo rights
 sudo useradd --system --uid 147 www-code --home /var/lib/codesrc/ --no-user-group

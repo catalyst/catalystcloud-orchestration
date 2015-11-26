@@ -15,14 +15,13 @@ parameter_groups:
   - image
   - public_net
   - public_net_id
-  - private_net_name
   - private_net_cidr
-  - ssh_ip_cidr
+  - secgroup_server
   - private_net_gateway
   - private_net_pool_start
   - private_net_pool_end
   - private_net_dns_servers
-  - router_name
+  
 - label: MoodleTotara
   description: Moodle/Totara instance configuration
   parameters:
@@ -72,20 +71,16 @@ parameters:
     description: >
       ID of public network for which floating IP addresses will be allocated
 
-  private_net_name:
-    type: string
-    description: Name of private network to be created
-    default: private-net
-
   private_net_cidr:
     type: string
     description: Private network address (CIDR notation)
     default: 192.168.0.0/24
-
-  ssh_ip_cidr:
+    
+ secgroup_server:
     type: string
-    description: Network address (CIDR notation) for SSH access
-
+    description: Security group name
+    default: mdl_1server
+    
   private_net_gateway:
     type: string
     description: Private network gateway address
@@ -105,17 +100,12 @@ parameters:
     type: comma_delimited_list
     description: DNS servers for the private network
 
-  router_name:
-    type: string
-    description: >
-      Name of the router that will connect the private and public networks
-    default: moodletotara-router
-
 # Moodle/Totara configuration
 
   site_name:
     type: string
     description: The value of the $SITENAME variable
+    default: mdl1
 
   environment:
     type: string
@@ -160,7 +150,7 @@ resources:
   private_net:
     type: OS::Neutron::Net
     properties:
-      name: { get_param: private_net_name }
+      name: {"Fn::Join": ['-',[{get_param: site_name}, 'net']]}
 
   private_subnet:
     type: OS::Neutron::Subnet
@@ -178,7 +168,7 @@ resources:
     properties:
       external_gateway_info:
         network: { get_param: public_net }
-      name: { get_param: router_name }
+      name: {"Fn::Join": ['-',[{get_param: site_name}, 'router']]}
 
   router_interface:
     type: OS::Neutron::RouterInterface
@@ -192,7 +182,7 @@ resources:
   server:
     type: OS::Nova::Server
     properties:
-      name: server
+      name: {"Fn::Join": ['-',[{get_param: site_name}, 'server']]}
       image: { get_param: image }
       flavor: { get_param: servers_flavor }
       key_name: { get_param: key_name }
@@ -217,7 +207,7 @@ resources:
   server_rootvol:
     type: OS::Cinder::Volume
     properties:
-      name: server-rootvol
+      name: {"Fn::Join": ['-',[{get_param: site_name}, 'rootvol']]}
       image: { get_param: image }
       size: 15
 
@@ -227,30 +217,8 @@ resources:
       network_id: { get_resource: private_net }
       fixed_ips:
         - subnet_id: { get_resource: private_subnet }
-      security_groups:
-        - { get_resource: secgroup_server }
-
-  secgroup_server:
-    type: OS::Neutron::SecurityGroup
-    properties:
-      name: servers
-      description: Moodle/Totara
-      rules:
-        - direction: ingress
-          protocol: tcp
-          remote_ip_prefix: 0.0.0.0/0
-          port_range_min: 80
-          port_range_max: 80
-        - direction: ingress
-          protocol: tcp
-          remote_ip_prefix: 0.0.0.0/0
-          port_range_min: 443
-          port_range_max: 443
-        - direction: ingress
-          protocol: tcp
-          remote_ip_prefix: { get_param: ssh_ip_cidr }
-          port_range_min: 22
-          port_range_max: 22
+      security_groups: 
+        - { get_param: secgroup_server }
 
   server_floating_ip:
     type: OS::Neutron::FloatingIP
@@ -270,5 +238,10 @@ outputs:
   server_public_ip:
     description: Floating IP address of server1 in public network
     value: { get_attr: [ server_floating_ip, floating_ip_address ] }
+    
+  host_name:
+    description: host name
+    value: { get_param: [ site_url ] }
+
 
 
