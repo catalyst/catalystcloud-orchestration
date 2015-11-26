@@ -76,7 +76,7 @@ parameters:
     description: Private network address (CIDR notation)
     default: 192.168.0.0/24
     
- secgroup_server:
+  secgroup_server:
     type: string
     description: Security group name
     default: mdl_1server
