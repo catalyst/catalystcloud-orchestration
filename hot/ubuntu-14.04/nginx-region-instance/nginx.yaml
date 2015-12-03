@@ -1,0 +1,217 @@
+#
+# HOT template for building a simple nginx stack in the Catalyst
+# Cloud nz-por-1 region.
+#
+heat_template_version: 2015-04-30
+
+description: >
+  HOT template for building a simple nginx stack in the Catalyst
+  Cloud nz-por-1 region.
+
+parameter_groups:
+- label: Nginx
+  description: Nginx configuration
+  parameters:
+  - key_name
+  - public_net
+  - public_net_id
+  - private_net_name
+  - private_subnet_name
+  - private_net_cidr
+  - private_net_gateway
+  - private_net_pool_start
+  - private_net_pool_end
+  - private_net_dns_servers
+  - router_name
+  - nginx_secgroup_name
+  - host_name
+  - domain_name
+
+parameters:
+
+  key_name:
+    type: string
+    description: Name of an existing key pair to use for the server
+    default: nginx-demo-key
+    constraints:
+      - custom_constraint: nova.keypair
+  servers_flavor:
+    type: string
+    description: Flavour for the servers
+    default: c1.c1r1
+    constraints:
+      - custom_constraint: nova.flavor
+  image:
+    type: string
+    description: Image ID or image name to use for the server
+    default: ubuntu-14.04-x86_64
+    constraints:
+      - custom_constraint: glance.image
+  public_net:
+    type: string
+    description: >
+      Name of public network
+    default: public-net
+
+  public_net_id:
+    type: string
+    description: >
+      ID of public network
+    default: 849ab1e9-7ac5-4618-8801-e6176fbbcf30
+
+  private_net_name:
+    type: string
+    description: Name of private network to be created
+    default: nginx-net
+
+  private_subnet_name:
+    type: string
+    description: Name of private subnetwork to be created
+    default: nginx-subnet
+
+  private_net_cidr:
+    type: string
+    description: Private network address (CIDR notation)
+    default: 10.10.0.0/24
+
+  private_net_gateway:
+    type: string
+    description: Private network gateway address
+    default: 10.10.0.1
+
+  private_net_pool_start:
+    type: string
+    description: Start of private network IP address allocation pool
+    default: 10.10.0.2
+
+  private_net_pool_end:
+    type: string
+    description: End of private network IP address allocation pool
+    default: 10.10.0.200
+
+  private_net_dns_servers:
+    type: comma_delimited_list
+    description: DNS servers for the private network
+    default: [ 202.78.247.197, 202.78.247.198, 202.78.247.199 ]
+
+  router_name:
+    type: string
+    description: >
+      Name of the router that will connect the private and public networks
+    default: nginx-router
+
+  nginx_secgroup_name:
+    type: string
+    description: Name of the Nginx Security Group
+    default: nginx-sec-group
+
+  host_name:
+    type: string
+    description: Hostname
+    default: primary
+
+  domain_name:
+    type: string
+    description: Domain name of the organisation
+    default: localdomain
+
+resources:
+
+  private_net:
+    type: OS::Neutron::Net
+    properties:
+      name: { get_param: private_net_name }
+
+  private_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      name: { get_param: private_subnet_name }
+      network_id: { get_resource: private_net }
+      cidr: { get_param: private_net_cidr }
+      gateway_ip: { get_param: private_net_gateway }
+      allocation_pools:
+        - start: { get_param: private_net_pool_start }
+          end: { get_param: private_net_pool_end }
+      dns_nameservers: { get_param: private_net_dns_servers }
+
+  router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info:
+        network: { get_param: public_net }
+      name: { get_param: router_name }
+
+  router_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet_id: { get_resource: private_subnet }
+
+  nginx_secgroup:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: { get_param: nginx_secgroup_name }
+      description: Security group for Nginx Instances
+      rules:
+        - direction: ingress
+          protocol: tcp
+          remote_ip_prefix: 0.0.0.0/0
+          port_range_min: 22
+          port_range_max: 22
+        - direction: ingress
+          protocol: tcp
+          remote_ip_prefix: 0.0.0.0/0
+          port_range_min: 80
+          port_range_max: 80
+
+  nginx_config:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config:
+        str_replace:
+          template: { get_file: nginx.cf }
+          params:
+            domain_name: { get_param: domain_name }
+            host_name: { get_param: host_name }
+
+  nginx_script:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config:
+        str_replace:
+          template: { get_file: nginx-header.sh }
+          params:
+            host_name: { get_param: host_name }
+
+  nginx_init:
+    type: OS::Heat::MultipartMime
+    properties:
+      parts:
+        - config: { get_resource: nginx_config }
+        - config: { get_resource: nginx_script }
+
+  nginx_server:
+    type: OS::Nova::Server
+    properties:
+      name: { get_param: host_name }
+      image: { get_param: image }
+      flavor: { get_param: servers_flavor }
+      key_name: { get_param: key_name }
+      user_data_format: RAW
+      networks:
+        - port: { get_resource: nginx_server_port }
+      user_data: { get_resource: nginx_init }
+
+  nginx_server_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_resource: private_net }
+      security_groups:
+        - { get_resource: nginx_secgroup }
+
+  nginx_server_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network_id: { get_param: public_net_id }
+      port_id: { get_resource: nginx_server_port }
+    depends_on: router_interface
