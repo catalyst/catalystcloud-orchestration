@@ -170,6 +170,10 @@ fi
 # Install nginx
 sudo apt-get -y install nginx
 
+# Set number of nginx workers to number of processors in nginx.conf
+export NPROC=`/usr/bin/nproc`
+sudo sed -i 's/^worker_processes.*/worker_processes '$NPROC';/' /etc/nginx/nginx.conf
+
 # make some files & links for nginx:
 
 sudo mkdir /etc/nginx/maintenance

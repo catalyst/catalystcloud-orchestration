@@ -1,4 +1,14 @@
 #! /bin/bash
+# This script automagically modifies the /etc/hosts file to add entries for the IP of a new Moodle stack
+# It takes a single argument, the stack name
+# It relies on the HEAT template script outputting a variable called host_name which contains the site url, i.e.
+# host_name:
+#    description: host name
+#    value: { get_param: [ site_url ] }
+# and site_url in turn is an appropriately defined/configured instance parameter
+# It will ask for sudo privileges in order to make changes to the hosts file and has minimal sanity checking for adding or updating an entry
+# Cristiano Sala, Dec 2015
+
 # Check arguments
 if [[ $# -eq 0 ]] ; then
     echo 'usage: stackhost.sh <stack name>'
