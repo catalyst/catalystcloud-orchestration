@@ -1,4 +1,6 @@
 #!/bin/bash -v
+# Change shell to bash
+sudo /usr/bin/chsh -s /bin/bash ec2-user
 # Set up shell variables
 export DEBIAN_FRONTEND=noninteractive
 export SITENAME=site_name
