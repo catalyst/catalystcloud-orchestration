@@ -1,0 +1,116 @@
+# Based on template from https://github.com/icclab/kubernetes-on-openstack-demo
+
+# NFS exports
+# core@master ~ $ more /etc/exports
+# /mnt/ 10.101.1.0/24(rw,async,no_subtree_check,no_root_squash,fsid=0)
+
+# start nfs
+# sudo systemctl start nfsd
+# sudo systemctl start rpc-mountd
+# sudo exportfs
+# showmount --exports localhost
+# start nfsd on every minion
+# sudo mount -t nfs 10.101.1.22:/mnt /mnt
+# https://github.com/kubernetes/kubernetes/tree/master/examples/nfs
+
+heat_template_version: 2013-05-23
+description: >
+  A simple Heat template to deploy CoreOS into an existing cluster.
+parameters:
+  public_net_id:
+    type: string
+    label: Public Network ID
+    description: ID of the public network to use
+  private_net_id:
+    type: string
+    description: >
+      ID of private network
+  image_id:
+    type: string
+    label: Glance Image ID
+    description: ID of existing Glance image to use
+  key-pair:
+    type: string
+    label: SSH Key Pair
+    description: Name of the SSH Key pair to use
+  master_ip:
+    type: string
+    label: Master node IP
+    description: Master node IP
+  discovery_ip:
+    type: string
+    label: Discovery node IP
+    description: Discovery node IP
+  k8s_url:
+    type: string
+    label: Kubernetes URL for binaries
+    description: Kubernetes URL for binaries
+  etcd_url:
+    type: string
+    label: etcd URL for binaries
+    description: etcd URL for binaries
+  flannel_url:
+    type: string
+    label: flannel URL for binaries
+    description: flannel URL for binaries
+  make_cert_url:
+    type: string
+    label: make cert script URL
+    description: make cert script URL
+  domain_name:
+    type: string
+    label: Domain Name
+    description: Domain Name
+    default: local.net
+
+resources:
+
+  minion_port:
+    type: OS::Neutron::Port
+    properties:
+      admin_state_up: true
+      network_id: { get_param: private_net_id }
+      security_groups:
+        - secgroup_kube_minion
+
+  minion_config:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config:
+        str_replace:
+          template: { get_file: minion.cf }
+          params:
+            domain_name: { get_param: domain_name }
+
+  minion_software:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config:
+        str_replace:
+          template: { get_file: minion.sh }
+          params:
+            domain_name: { get_param: domain_name }
+            discovery_ip: { get_param: discovery_ip }
+            master_ip: { get_param: master_ip }
+            k8s_url: { get_param: k8s_url }
+            etcd_url: { get_param: etcd_url }
+            flannel_url: { get_param: flannel_url }
+
+  minion_init:
+    type: OS::Heat::MultipartMime
+    properties:
+      parts:
+        - config: { get_resource: minion_config }
+        - config: { get_resource: minion_software }
+
+  minion:
+    type: OS::Nova::Server
+    properties:
+      # name: minion
+      image: { get_param: image_id }
+      flavor: c1.c2r4
+      networks:
+        - port: { get_resource: minion_port }
+      key_name: { get_param: key-pair }
+      user_data_format: RAW
+      user_data: { get_resource: minion_init }

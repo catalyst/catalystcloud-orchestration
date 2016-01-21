@@ -1,0 +1,33 @@
+#cloud-config
+
+# Set the hostname and FQDN
+fqdn: discovery.local.net
+manage_etc_hosts: true
+
+# Set the timezone to UTC (strongly recommended)
+timezone: UTC
+
+# Set the locale
+locale: en_NZ.UTF-8
+
+# Run package update and upgrade on first boot
+package_upgrade: true
+
+# Install packages
+packages:
+ - git
+ - tig
+ - sysstat
+ - htop
+ - wget
+ - curl
+ - ntp
+
+# Reboot when finished
+power_state:
+ mode: reboot
+ message: Rebooting to apply new settings
+
+# Log all cloud-init process output (info & errors) to a logfile
+output: {all: ">> /var/log/cloud-init-output.log"}
+

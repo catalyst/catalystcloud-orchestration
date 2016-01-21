@@ -1,0 +1,113 @@
+# Based on template from https://github.com/icclab/kubernetes-on-openstack-demo
+
+# NFS exports
+# core@master ~ $ more /etc/exports
+# /mnt/ 10.101.1.0/24(rw,async,no_subtree_check,no_root_squash,fsid=0)
+
+# start nfs
+# sudo systemctl start nfsd
+# sudo systemctl start rpc-mountd
+# sudo exportfs
+# showmount --exports localhost
+# start nfsd on every minion
+# sudo mount -t nfs 10.101.1.22:/mnt /mnt
+# https://github.com/kubernetes/kubernetes/tree/master/examples/nfs
+
+heat_template_version: 2013-05-23
+description: >
+  A simple Heat template to deploy CoreOS into an existing cluster.
+parameters:
+  public_net_id:
+    type: string
+    label: Public Network ID
+    description: ID of the public network to use
+  private_net_id:
+    type: string
+    description: >
+      ID of private network
+  image_id:
+    type: string
+    label: Glance Image ID
+    description: ID of existing Glance image to use
+  key-pair:
+    type: string
+    label: SSH Key Pair
+    description: Name of the SSH Key pair to use
+  k8s_url:
+    type: string
+    label: Kubernetes URL for binaries
+    description: Kubernetes URL for binaries
+  etcd_url:
+    type: string
+    label: etcd URL for binaries
+    description: etcd URL for binaries
+  flannel_url:
+    type: string
+    label: flannel URL for binaries
+    description: flannel URL for binaries
+  make_cert_url:
+    type: string
+    label: make cert script URL
+    description: make cert script URL
+  master_ip:
+    type: string
+    label: Master node IP
+    description: Master node IP
+  discovery_ip:
+    type: string
+    label: Discovery node IP
+    description: Discovery node IP
+
+resources:
+
+  secgroup_kube_minion:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      description: Kubernetes Security Group
+      name: secgroup_kube_minion
+      rules:
+        - protocol: icmp
+        - protocol: tcp
+        - protocol: udp
+
+  private_net:
+    type: OS::Neutron::Net
+    properties:
+      admin_state_up: true
+      name: k8s-net
+
+  private_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      name: k8s-subnet
+      cidr: 10.101.1.0/24
+      gateway_ip: 10.101.1.1
+      allocation_pools:
+        - start: 10.101.1.20
+          end: 10.101.1.99
+      dns_nameservers: [8.8.8.8, 8.8.4.4]
+      enable_dhcp: true
+      network_id: { get_resource: private_net }
+
+  router:
+    type: OS::Neutron::Router
+    properties:
+      name: k8s-router
+      admin_state_up: true
+
+  router_gw:
+    type: OS::Neutron::RouterGateway
+    properties:
+      network_id: { get_param: public_net_id }
+      router_id: { get_resource: router }
+
+  router_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet_id: { get_resource: private_subnet }
+
+outputs:
+  private_net_id:
+    description: Private network ID
+    value: { get_resource: private_net }

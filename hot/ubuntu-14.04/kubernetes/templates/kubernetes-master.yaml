@@ -1,0 +1,222 @@
+# Based on template from https://github.com/icclab/kubernetes-on-openstack-demo
+
+# NFS exports
+# core@master ~ $ more /etc/exports
+# /mnt/ 10.101.1.0/24(rw,async,no_subtree_check,no_root_squash,fsid=0)
+
+# start nfs
+# sudo systemctl start nfsd
+# sudo systemctl start rpc-mountd
+# sudo exportfs
+# showmount --exports localhost
+# start nfsd on every minion
+# sudo mount -t nfs 10.101.1.22:/mnt /mnt
+# https://github.com/kubernetes/kubernetes/tree/master/examples/nfs
+
+heat_template_version: 2013-05-23
+description: >
+  A simple Heat template to deploy CoreOS into an existing cluster.
+parameters:
+  public_net_id:
+    type: string
+    label: Public Network ID
+    description: ID of the public network to use
+  private_net_id:
+    type: string
+    description: >
+      ID of private network
+  image_id:
+    type: string
+    label: Glance Image ID
+    description: ID of existing Glance image to use
+  key-pair:
+    type: string
+    label: SSH Key Pair
+    description: Name of the SSH Key pair to use
+  k8s_url:
+    type: string
+    label: Kubernetes URL for binaries
+    description: Kubernetes URL for binaries
+  etcd_url:
+    type: string
+    label: etcd URL for binaries
+    description: etcd URL for binaries
+  flannel_url:
+    type: string
+    label: flannel URL for binaries
+    description: flannel URL for binaries
+  make_cert_url:
+    type: string
+    label: make cert script URL
+    description: make cert script URL
+  master_ip:
+    type: string
+    label: Master node IP
+    description: Master node IP
+  discovery_ip:
+    type: string
+    label: Discovery node IP
+    description: Discovery node IP
+  domain_name:
+    type: string
+    label: Domain Name
+    description: Domain Name
+    default: local.net
+
+resources:
+
+  secgroup_kube_master:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      description: Kubernetes Master Security Group
+      name: secgroup_kube_master
+      rules:
+        - protocol: icmp
+        - remote_ip_prefix: 10.101.1.0/24
+          protocol: tcp
+          port_range_min: 0
+          port_range_max: 65535
+        - remote_ip_prefix: 10.101.1.0/24
+          protocol: udp
+          port_range_min: 0
+          port_range_max: 65535
+        - protocol: tcp
+          port_range_min: 22
+          port_range_max: 22
+        - protocol: tcp
+          port_range_min: 80
+          port_range_max: 80
+        - protocol: tcp
+          port_range_min: 443
+          port_range_max: 443
+
+  discovery_port:
+    type: OS::Neutron::Port
+    properties:
+      admin_state_up: true
+      network_id: { get_param: private_net_id }
+      security_groups:
+        - { get_resource: secgroup_kube_master }
+      fixed_ips:
+        - ip_address: { get_param: discovery_ip }
+
+  discovery_config:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config:
+        str_replace:
+          template: { get_file: discovery.cf }
+          params:
+            domain_name: { get_param: domain_name }
+
+  discovery_software:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config:
+        str_replace:
+          template: { get_file: discovery.sh }
+          params:
+            domain_name: { get_param: domain_name }
+            discovery_ip: { get_param: discovery_ip }
+            etcd_url: { get_param: etcd_url }
+            make_cert_url: { get_param: make_cert_url }
+
+  discovery_init:
+    type: OS::Heat::MultipartMime
+    properties:
+      parts:
+        - config: { get_resource: discovery_config }
+        - config: { get_resource: discovery_software }
+
+  discovery:
+    type: OS::Nova::Server
+    properties:
+      name: discovery
+      image: { get_param: image_id }
+      flavor: c1.c1r1
+      networks:
+        - port: { get_resource: discovery_port }
+      key_name: { get_param: key-pair }
+      user_data_format: RAW
+      user_data: { get_resource: discovery_init }
+
+  registry_dbvol:
+    type: OS::Cinder::Volume
+    properties:
+      name: registry_dbvol
+      size: 20
+
+  registry_dbvol_attachment:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      volume_id: { get_resource: registry_dbvol }
+      instance_uuid: { get_resource: master }
+      mountpoint: /dev/vdb
+
+  master_port:
+    type: OS::Neutron::Port
+    properties:
+      admin_state_up: true
+      network_id: { get_param: private_net_id }
+      fixed_ips:
+        - ip_address: { get_param: master_ip }
+      security_groups:
+        - { get_resource: secgroup_kube_master }
+
+  master_floatingip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network_id: { get_param: public_net_id }
+      port_id: { get_resource: master_port }
+
+  master_config:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config:
+        str_replace:
+          template: { get_file: master.cf }
+          params:
+            domain_name: { get_param: domain_name }
+
+  master_software:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config:
+        str_replace:
+          template: { get_file: master.sh }
+          params:
+            domain_name: { get_param: domain_name }
+            discovery_ip: { get_param: discovery_ip }
+            master_ip: { get_param: master_ip }
+            k8s_url: { get_param: k8s_url }
+            etcd_url: { get_param: etcd_url }
+            flannel_url: { get_param: flannel_url }
+            make_cert_url: { get_param: make_cert_url }
+
+  master_init:
+    type: OS::Heat::MultipartMime
+    properties:
+      parts:
+        - config: { get_resource: master_config }
+        - config: { get_resource: master_software }
+
+  master:
+    type: OS::Nova::Server
+    properties:
+      name: master
+      image: { get_param: image_id }
+      flavor: c1.c2r8
+      networks:
+        - port: { get_resource: master_port }
+      key_name: { get_param: key-pair }
+      user_data_format: RAW
+      user_data: { get_resource: master_init }
+
+outputs:
+
+  floating_ip:
+    description: Public IP Address of Kubernetes master
+    value: { get_attr: [master_floatingip, floating_ip_address] }
+  key-pair:
+    description: SSH key-pair name for Kubernetes master
+    value: { get_param: key-pair }
