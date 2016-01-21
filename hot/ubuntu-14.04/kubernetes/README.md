@@ -34,7 +34,7 @@ Each one of these components will appear in your Horizon dashboard -> Orchestrat
 
 Clone:
 ```
-$ git clone git@github.com:piersharding/catalystcloud-orchestration.git
+$ git clone git@github.com:catalyst/catalystcloud-orchestration.git
 $ cd catalystcloud-orchestration/hot/ubuntu-14.04/kubernetes
 ```
 
@@ -53,7 +53,7 @@ $ ssh-agent bash
 $ ssh-add /path/to/<your-key-pair>.pem
 ```
 
-Following this, will need to set the Open Stack environment (even if you have already done this, do it again as ssh-agent bash has reset ENV).  Re-source the rc file eg:
+Following this, you will need to set the Open Stack environment (even if you have already done this, do it again as ssh-agent bash has reset ENV).  Re-source the rc file eg:
 ```
 $ . /path/to/rc/file/your-tenant-openrc.sh
 ```
@@ -70,9 +70,9 @@ $ heat stack-list
 
 ### Execution
 
-The entire process of running the cluster build is driven through using make with a Makefile.  While make is calling the appropriate heat stack-create commands, as would normally be done manually, it also help ensure the order of execution, and monitors the completion of each step before continuing with the next process.
+The entire process of running the cluster build is driven through using make configured with a Makefile.  While make is calling the appropriate heat stack-create commands, as would normally be done manually, it also helps ensure the order of execution, and monitors the completion of each step before continuing with the next process.
 
-It is necessary to pass atleast one parameter to the make process, of the KEY_PAIR.  This is the same key file name (without the .pem) as used environment setup above.  Check the other default values in the templates/environment.yaml file (NET_ID will be substituted by the build process).
+It is necessary to pass atleast one parameter to the make process, of the KEY_PAIR.  This is the same key file name (without the .pem) as used in the environment setup above.  Check the other default values in the templates/environment.yaml file (don't worry about NET_ID as it will be substituted by the build process).
 
 Start the build:
 
@@ -241,7 +241,7 @@ To verify that the Cluster is up, list all minions:
 $ kubectl get nodes
 ```
 
-It should show you 4 minions (.1.12 is the master):
+It should show you 4 minions (10.101.1.12 is the master):
 
 ```
  NAME          LABELS                               STATUS    AGE
@@ -312,13 +312,13 @@ For further Kubernetes examples have a look at: https://github.com/kubernetes/ku
 
 ## Expanding your Minions!
 
-More minion worker nodes can be created by specifying a start and stop for a range:
+More minion worker nodes can be created by specifying a start and stop range - eg:
 
 ```
 $ make build_minions START=4 FINISH=5 KEY_PAIR=<your-key-pair>
 ```
 
-Test that they have joined the cluster (after an appropriate wait for the cloud-init build to complete):
+This will give you two new nodes.  Test that they have joined the cluster (after an appropriate wait for the cloud-init build and reboot to complete):
 
 ```
 $ kubectl get nodes
@@ -335,13 +335,10 @@ You may see a NotReady status for a new node - this should mean that it is up bu
 
 ## Cleaning Up
 
-Each component will be registered under orchestration in the Horizon dashboard, so they are fully available their from a management perspective at https://dashboard.cloud.catalyst.net.nz/project/stacks/
+Each component will be registered under orchestration in the Horizon dashboard, so they are fully available there from a management perspective at https://dashboard.cloud.catalyst.net.nz/project/stacks/
 
 Additionally, the Makefile has a set of actions for deleting each component:
 
 * make clean_minions KEY_PAIR=<your-key-pair> - remove all the minons.
 * make clean KEY_PAIR=<your-key-pair> - remove the minions and master
 * make realclean KEY_PAIR=<your-key-pair> - remove minons, master, and private network
-
-
-
