@@ -212,6 +212,7 @@ script
         # modify these in /etc/default/$UPSTART_JOB (/etc/default/docker)
         DOCKER=/usr/bin/\$UPSTART_JOB
         DOCKER_OPTS=
+        sleep 10
         if [ -f /etc/default/\$UPSTART_JOB ]; then
                 . /etc/default/\$UPSTART_JOB
         fi

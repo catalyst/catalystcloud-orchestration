@@ -131,7 +131,7 @@ resources:
   discovery:
     type: OS::Nova::Server
     properties:
-      name: discovery
+      name: k8s-discovery
       image: { get_param: image_id }
       flavor: c1.c1r1
       networks:
@@ -203,7 +203,7 @@ resources:
   master:
     type: OS::Nova::Server
     properties:
-      name: master
+      name: k8s-master
       image: { get_param: image_id }
       flavor: c1.c2r8
       networks:

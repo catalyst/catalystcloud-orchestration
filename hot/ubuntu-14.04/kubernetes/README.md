@@ -58,7 +58,7 @@ Following this, will need to set the Open Stack environment (even if you have al
 $ . /path/to/rc/file/your-tenant-openrc.sh
 ```
 
-Test this with, giving a similar output:
+Testing this will give a similar output to the following:
 ```
 $ heat stack-list
 +--------------------------------------+------------+---------------+----------------------+
@@ -91,8 +91,9 @@ heat stack-create -f templates/kubernetes-network.yaml -e templates/environment.
 +--------------------------------------+-------------+--------------------+----------------------+
 | xxxxxxxx-xxxx-4f5f-99f1-9734280c7a4f | k8s-network | CREATE_IN_PROGRESS | 2016-01-21T01:57:39Z |
 +--------------------------------------+-------------+--------------------+----------------------+
-# wait for 5 seconds so atleast the network is up
-sleep 5
+
+ #wait for 5 seconds so atleast the network is up
+ sleep 5
 NETWORK_EXISTS=`heat stack-list 2>/dev/null | grep k8s-network | grep CREATE_COMPLETE`; \
         while [ -z "$NETWORK_EXISTS" ] ; \
         do \
@@ -204,7 +205,7 @@ heat output-show k8s-master floating_ip
 "150.242.xxx.xxx"
 ```
 
-All 5 stacks need to show CREATE_COMPLETE.
+All 5 stacks need to show CREATE_COMPLETE.  On top of this, as the cloud-init scripts for each host complete, each will be rebooted and need to settle into the cluster.  This may take a few minutes (actually 5-10) before Kubernetes is up and running, so best to have a cup of tea at this stage.
 
 ## Next Steps
 
@@ -303,6 +304,44 @@ $ make test_dns KEY_PAIR=<your-key-pair>
 This will create a busybox pod and run a few ping tests, before tearing it down again.
 
 
-### Further examples
+## Further examples
 
-https://github.com/kubernetes/kubernetes/blob/master/examples/guestbook/README.md
+For further Kubernetes examples have a look at: https://github.com/kubernetes/kubernetes/blob/master/examples/guestbook/README.md
+
+
+
+## Expanding your Minions!
+
+More minion worker nodes can be created by specifying a start and stop for a range:
+
+```
+$ make build_minions START=4 FINISH=5 KEY_PAIR=<your-key-pair>
+```
+
+Test that they have joined the cluster (after an appropriate wait for the cloud-init build to complete):
+
+```
+$ kubectl get nodes
+NAME          LABELS                               STATUS     AGE
+10.101.1.12   kubernetes.io/hostname=10.101.1.12   Ready      15m
+10.101.1.23   kubernetes.io/hostname=10.101.1.23   Ready      15m
+10.101.1.24   kubernetes.io/hostname=10.101.1.24   Ready      14m
+10.101.1.25   kubernetes.io/hostname=10.101.1.25   Ready      14m
+10.101.1.26   kubernetes.io/hostname=10.101.1.26   Ready      2m
+10.101.1.27   kubernetes.io/hostname=10.101.1.27   NotReady   1m
+```
+You may see a NotReady status for a new node - this should mean that it is up but has not settled into the cluster yet.  Wait and check again.
+
+
+## Cleaning Up
+
+Each component will be registered under orchestration in the Horizon dashboard, so they are fully available their from a management perspective at https://dashboard.cloud.catalyst.net.nz/project/stacks/
+
+Additionally, the Makefile has a set of actions for deleting each component:
+
+* make clean_minions KEY_PAIR=<your-key-pair> - remove all the minons.
+* make clean KEY_PAIR=<your-key-pair> - remove the minions and master
+* make realclean KEY_PAIR=<your-key-pair> - remove minons, master, and private network
+
+
+
