@@ -14,11 +14,12 @@ parameters:
   public_net:
     type: string
     description: ID of the public network
-    default: 849ab1e9-7ac5-4618-8801-e6176fbbcf30
+    default: public-net
 
   private_net:
     type: string
     description: ID of the private network where instances will be created
+    default: private-net
 
   key_name:
     type: string
@@ -178,14 +179,14 @@ resources:
   webserver_port:
     type: OS::Neutron::Port
     properties:
-      network_id: { get_param: private_net }
+      network: { get_param: private_net }
       security_groups:
         - { get_resource: secgroup_webserver }
 
   webserver_floating_ip:
     type: OS::Neutron::FloatingIP
     properties:
-      floating_network_id: { get_param: public_net }
+      floating_network: { get_param: public_net }
       port_id: { get_resource: webserver_port }
 
   db_password:
@@ -249,7 +250,7 @@ resources:
   dbserver_port:
     type: OS::Neutron::Port
     properties:
-      network_id: { get_param: private_net }
+      network: { get_param: private_net }
       security_groups:
         - { get_resource: secgroup_mysql }
 
