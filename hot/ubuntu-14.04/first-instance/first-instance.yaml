@@ -103,7 +103,7 @@ parameters:
   secgroup_name:
     type: string
     description: network access for our first instance.
-    default: first-instance
+    default: first-instance-sg
 
   host_name:
     type: string
@@ -151,7 +151,7 @@ resources:
     type: OS::Neutron::SecurityGroup
     properties:
       name: { get_param: secgroup_name }
-      description: network access for our first instance.
+      description: Network access for our first instance.
       rules:
         - direction: ingress
           protocol: tcp
