@@ -71,5 +71,8 @@ resource "openstack_compute_instance_v2" "instance_1" {
     }
     key_pair = "${openstack_compute_keypair_v2.keypair_1.name}"
     security_groups = ["${openstack_compute_secgroup_v2.secgroup_1.name}","default"]
-    floating_ip = "${openstack_compute_floatingip_v2.floatingip_1.address}"
+    network {
+        floating_ip = "${openstack_compute_floatingip_v2.floatingip_1.address}"
+        name = "${openstack_networking_network_v2.network_1.name}"
+    }
 }
