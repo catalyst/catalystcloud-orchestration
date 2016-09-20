@@ -1,11 +1,11 @@
 # https://github.com/kubernetes/kubernetes/blob/master/cluster/addons/dns/README.md
 
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: kube-system
+# apiVersion: v1
+# kind: Namespace
+# metadata:
+#   name: kube-system
 
----
+# ---
 
 apiVersion: v1
 kind: Service

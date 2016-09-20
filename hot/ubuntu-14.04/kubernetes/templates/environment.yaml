@@ -5,7 +5,7 @@ parameters:
   private_net_id: NET_ID
   master_ip: 10.101.1.12
   discovery_ip: 10.101.1.10
-  k8s_url: https://storage.googleapis.com/kubernetes-release/release/v1.1.3/bin/linux/amd64
-  etcd_url: https://github.com/coreos/etcd/releases/download/v2.2.3/etcd-v2.2.3-linux-amd64.tar.gz
-  flannel_url: https://github.com/coreos/flannel/releases/download/v0.5.5/flannel-0.5.5-linux-amd64.tar.gz
+  k8s_url: https://storage.googleapis.com/kubernetes-release/release/v1.3.7/bin/linux/amd64
+  etcd_url: https://github.com/coreos/etcd/releases/download/v3.0.9/etcd-v3.0.9-linux-amd64.tar.gz
+  flannel_url: https://github.com/coreos/flannel/releases/download/v0.6.1/flannel-v0.6.1-linux-amd64.tar.gz
   make_cert_url: https://raw.githubusercontent.com/kubernetes/kubernetes/master/cluster/saltbase/salt/generate-cert/make-ca-cert.sh

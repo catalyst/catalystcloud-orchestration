@@ -51,7 +51,8 @@ chmod +x /opt/bin/kubelet
 
 # Flannel stuff
 wget --no-check-certificate -N -O /tmp/flannel.tar.gz "flannel_url"
-tar --wildcards --to-stdout -xzvf /tmp/flannel.tar.gz "flannel*/flanneld" > /opt/bin/flannel
+#tar --wildcards --to-stdout -xzvf /tmp/flannel.tar.gz "flannel*/flanneld" > /opt/bin/flannel
+tar --to-stdout -xzvf /tmp/flannel.tar.gz "flanneld" > /opt/bin/flannel
 rm -f /tmp/flannel.tar.gz
 chmod +x /opt/bin/flannel
 
@@ -233,7 +234,6 @@ script
         # modify these in /etc/default/$UPSTART_JOB (/etc/default/docker)
         DOCKER=/usr/bin/\$UPSTART_JOB
         DOCKER_OPTS=
-        sleep 10
         if [ -f /etc/default/\$UPSTART_JOB ]; then
                 . /etc/default/\$UPSTART_JOB
         fi
@@ -510,5 +510,8 @@ start kubelet
 
 # let everything settle - then pull the plug
 sleep 5
+
+# set timezone
+/usr/bin/timedatectl set-timezone "Pacific/Auckland"
 
 echo "Master done!"

@@ -39,7 +39,7 @@ $ cd catalystcloud-orchestration/hot/ubuntu-14.04/kubernetes
 ```
 
 Ensure that you have the kubectl command installed and in the PATH.
-Follow the installation instructions here: http://kubernetes.io/v1.0/docs/getting-started-guides/aws/kubectl.html and test with:
+Follow the installation instructions here: http://kubernetes.io/docs/user-guide/prereqs/ and test with:
 ```
 $ kubectl version
 ```
@@ -78,7 +78,7 @@ Start the build:
 
 ```
 $ cd /path/to/catalystcloud-orchestration/hot/ubuntu-14.04/kubernetes
-$ make KEY_PAIR=<your-key-pair>
+$ make all KEY_PAIR=<your-key-pair>
 ```
 
 The output will be something similar to the following:
