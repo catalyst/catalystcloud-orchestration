@@ -65,6 +65,19 @@ parameters:
 
 resources:
 
+  docker_vol:
+    type: OS::Cinder::Volume
+    properties:
+      name: docker_vol
+      size: 20
+
+  docker_vol_attachment:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      volume_id: { get_resource: docker_vol }
+      instance_uuid: { get_resource: minion }
+      mountpoint: /dev/vdb
+
   minion_port:
     type: OS::Neutron::Port
     properties:

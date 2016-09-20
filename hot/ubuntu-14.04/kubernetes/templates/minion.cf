@@ -13,6 +13,17 @@ locale: en_NZ.UTF-8
 # Run package update and upgrade on first boot
 package_upgrade: true
 
+# Format the additional volume with EXT4
+fs_setup:
+ - label: docker_vol
+   filesystem: ext4
+   device: '/dev/vdb'
+   partition: auto
+
+# Add additional volumes to fstab
+mounts:
+ - [ /dev/vdb, /var/lib/docker, auto ]
+
 # Install packages
 packages:
  - git
