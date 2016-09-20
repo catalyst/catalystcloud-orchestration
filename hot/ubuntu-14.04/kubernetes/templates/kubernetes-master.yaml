@@ -131,7 +131,7 @@ resources:
   discovery:
     type: OS::Nova::Server
     properties:
-      name: k8s-discovery
+      name: discovery
       image: { get_param: image_id }
       flavor: c1.c1r1
       networks:
@@ -152,19 +152,6 @@ resources:
       volume_id: { get_resource: registry_dbvol }
       instance_uuid: { get_resource: master }
       mountpoint: /dev/vdb
-
-  docker_vol:
-    type: OS::Cinder::Volume
-    properties:
-      name: docker_vol
-      size: 20
-
-  docker_vol_attachment:
-    type: OS::Cinder::VolumeAttachment
-    properties:
-      volume_id: { get_resource: docker_vol }
-      instance_uuid: { get_resource: master }
-      mountpoint: /dev/vdc
 
   master_port:
     type: OS::Neutron::Port
@@ -216,7 +203,7 @@ resources:
   master:
     type: OS::Nova::Server
     properties:
-      name: k8s-master
+      name: master
       image: { get_param: image_id }
       flavor: c1.c2r8
       networks:

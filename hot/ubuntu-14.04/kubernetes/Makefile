@@ -8,7 +8,6 @@ MINONS_EXIST = $(shell heat stack-list | grep $(MINION_NAME))
 START ?= 1
 FINISH ?= 3
 NUMBERS := $(shell seq $(START) $(FINISH))
-DELNUMBERS := $(shell seq 1 20)
 ADDRS := $(shell seq 1 254)
 
 ifndef KEY_PAIR
@@ -18,11 +17,12 @@ endif
 all: build
 
 clean_minions:
-	for MINION in  $(DELNUMBERS) ; \
+	# $(foreach var,$(NUMBERS), heat stack-delete $(MINION_NAME)$(var);)
+	for MINION in  $(NUMBERS) ; \
 	do \
 	MINONS_EXIST=`heat stack-list 2>/dev/null | grep $(MINION_NAME)$${MINION}`; \
 	if [ -n "$$MINONS_EXIST" ] ; then \
-	heat stack-delete $(MINION_NAME)$${MINION}; \
+	heat stack-delete -y $(MINION_NAME)$${MINION}; \
 	while [ -n "$$MINONS_EXIST" ] ; \
 	do \
     echo "waiting ..."; \
@@ -36,7 +36,7 @@ clean_minions:
 
 clean: clean_minions
 ifneq "$(strip $(MASTER_EXISTS))" ""
-	heat stack-delete $(MASTER_NAME)
+	heat stack-delete -y $(MASTER_NAME)
 	MASTER_EXISTS=`heat stack-list 2>/dev/null | grep $(MASTER_NAME)`; \
 	while [ -n "$$MASTER_EXISTS" ] ; \
 	do \
@@ -136,7 +136,6 @@ start_tunnel: build_master stop_tunnel
 	# "Launch tunnel for 8080 ..."
 	which kubectl || (echo "kubectl command not found in PATH"; exit -1;)
 	MASTER_IP=`heat output-show $(MASTER_NAME) floating_ip | tr -d '"'`; \
-	echo "MASTER_IP is: $${MASTER_IP}"; \
 	ssh -f -N ubuntu@$${MASTER_IP} -L 8080:localhost:8080
 
 start_dns: build_master
@@ -189,7 +188,9 @@ test_dns:
 	while [ -n "$$CONTAINER_EXISTS" ] ; \
 	do \
     echo "waiting ..."; \
-    kubectl --server="http://localhost:8080" get pods  busybox; \
     sleep 3; \
     CONTAINER_EXISTS=`kubectl --server="http://localhost:8080" get pods  busybox 2>/dev/null` ; \
+    if [ -z "$$CONTAINER_EXISTS" ]; then \
+    kubectl --server="http://localhost:8080" get pods  busybox; \
+    fi; \
 	done; true

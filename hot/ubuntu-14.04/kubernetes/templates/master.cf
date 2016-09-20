@@ -19,15 +19,10 @@ fs_setup:
    filesystem: ext4
    device: '/dev/vdb'
    partition: auto
- - label: docker_vol
-   filesystem: ext4
-   device: '/dev/vdc'
-   partition: auto
 
 # Add additional volumes to fstab
 mounts:
  - [ /dev/vdb, /var/lib/registry-data, auto ]
- - [ /dev/vdc, /var/lib/docker, auto ]
 
 # Install packages
 packages:

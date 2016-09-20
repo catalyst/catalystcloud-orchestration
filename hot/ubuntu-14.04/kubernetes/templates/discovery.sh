@@ -53,4 +53,6 @@ cat << EOF > /etc/default/etcd
  ETCD_OPTS=" -name etcd0  -advertise-client-urls http://discovery_ip:2379,http://discovery_ip:4001  -listen-client-urls http://0.0.0.0:2379,http://0.0.0.0:4001  -initial-advertise-peer-urls http://discovery_ip:2380  -listen-peer-urls http://0.0.0.0:2380  -initial-cluster-token etcd-cluster-1  -initial-cluster etcd0=http://discovery_ip:2380  -initial-cluster-state new  -snapshot"
 EOF
 
+# set timezone
+/usr/bin/timedatectl set-timezone "Pacific/Auckland"
 
