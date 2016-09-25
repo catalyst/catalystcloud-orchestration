@@ -74,7 +74,7 @@ resources:
     type: OS::Neutron::Net
     properties:
       admin_state_up: true
-      name: k8s-net
+      name: k8s-network
 
   private_subnet:
     type: OS::Neutron::Subnet
