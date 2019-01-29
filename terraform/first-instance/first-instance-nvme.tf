@@ -23,7 +23,7 @@ resource "openstack_networking_subnet_v2" "subnet_1" {
     network_id = "${openstack_networking_network_v2.network_1.id}"
     allocation_pools {
         start = "10.0.0.10"
-        end = "10.0.0.200"
+        end = "10.0.00.200"
     }
     enable_dhcp = "true"
     cidr = "10.0.0.0/24"
@@ -52,14 +52,14 @@ resource "openstack_compute_secgroup_v2" "secgroup_1" {
 # replace public_key with a valid SSH public key that you wish to use
 resource "openstack_compute_keypair_v2" "keypair_1" {
   name = "first-instance-keypair"
-  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDG6+RD+8AMc+MajZS3XtOIBIwP9MiMSbX8JxMIbuRWNtmsngSj1VeSgqaIIvewo9vdW8h9QtxW7Dr3hL30Ary2Hc4y2KNEQhmjWbkZ6erOF64EEuzwPThzyxhM349ZFTMUbGFqw4R//fqr6FVSCRZIImu6a2lwKM7hMOxvih9YmM2iUnTJEwztmao25qQ0uoYka1NethddBOyZfSMNSz2NtTQT1qFgB3+FeRzLrgYXwFo01zDL8nJOTbEfX+D7hpzmonjquJL9AwV3wgK95qqCnnw64TdKrRGX0d4WHR1RPuKMLq41JFoiyiaQZYh9zY17OU/Rig6gpXPcLHcT2IYfzjGqWv0bYMVEi9bqTXLocjUIjb7eyI//I3CJ9/Ko3jtWLYkKj1i8zu+4/u0CAYxuUqD4LGbPXMnEfo86xr+Zl52gaR1VMl81ivxgOCyfeR6hE4E3nheoLqeZc1jeoqRteNTmxLm3XWYIJFBGX2DaLMxqALtf8Tj6hk+f8BisX3jkPDtObhpdHmXNusyIOZXuRYAxhDBZ+h9kNcxk7FFwIBvfAXuO6GAmQOZKiU9nPdSUzFoDHLUe2QMcjmMr4b3Hko/8wb8kJvrOCmrxnDVYQHOOSjOPTC/4eGCw5fi10aYXmr3jtBQwdSUL/2tKKD/Mamy9jepl1pbtWxN0zIcS4w== glyndavies@glyndavies-lp"
+  public_key = "ssh-rsa AAAA"
 }
 
 # Create an NVMe volume from Ubuntu18.04 image
 resource "openstack_blockstorage_volume_v2" "testvol" {
   name = "testvol"
   image_id = "295b1076-b5ee-4d7b-9a51-e9118069365c"
-  volume_type = "b1.standard"
+  volume_type = "b1.sr-r3-nvme-1000"
   size = 11
 }
 
