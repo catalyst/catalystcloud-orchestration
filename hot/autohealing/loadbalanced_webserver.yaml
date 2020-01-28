@@ -1,0 +1,39 @@
+heat_template_version: 2016-10-14
+
+description: |
+  The heat template is used to create a server as a load balancer member.
+parameters:
+  network_id:
+    type: string
+  sg_ids:
+    type: comma_delimited_list
+  pool_id:
+    type: string
+    default: no_default
+    hidden: true
+  metadata:
+    type: json
+
+resources:
+  server:
+    type: OS::Nova::Server
+    properties:
+      image: ubuntu-18.04-x86_64
+      flavor: c1.c1r1
+      networks:
+        - network: {get_param: network_id}
+      security_groups: {get_param: sg_ids}
+      metadata: {get_param: metadata}
+      config_drive: true
+      user_data_format: RAW
+      user_data: { get_file: user_data.sh }
+  pool_member:
+    type: OS::Octavia::PoolMember
+    properties:
+      address: {get_attr: [server, first_address]}
+      pool: {get_param: pool_id}
+      protocol_port: 80
+
+outputs:
+  server_id:
+    value: {get_resource: server}

@@ -1,0 +1,92 @@
+heat_template_version: 2016-10-14
+
+description: |
+  The heat template is used to demo the autoscaling and autohealing for a webserver.
+
+parameters:
+  keypair:
+    type: string
+
+resources:
+  # keypair:
+  #   type: OS::Nova::KeyPair
+  #   properties:
+  #     public_key: {get_file}
+  router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info:
+        network: public-net
+  router_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router: {get_resource: router}
+      subnet: {get_resource: subnet }
+  security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      rules: [
+        {protocol: "tcp", "port_range_min": 80, "port_range_max": 80},
+        {protocol: "tcp", "port_range_min": 22, "port_range_max": 22},
+      ]
+  network:
+    type: OS::Neutron::Net
+    properties:
+      admin_state_up: true
+  subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      network: {get_resource: network}
+      cidr: "192.168.0.0/24"
+      gateway_ip: 192.168.0.1
+      allocation_pools: [{"start": 192.168.0.2, "end": 192.168.0.100}]
+  autoscaling_group:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      min_size: 2
+      max_size: 4
+      resource:
+        type: loadbalanced_webserver.yaml
+        properties:
+          keypair: {get_param: keypair}
+          network_id: {get_resource: network}
+          sg_ids: [{get_resource: security_group}]
+          pool_id: {get_resource: loadbalancer_pool}
+          metadata: {"metering.server_group": {get_param: "OS::stack_id"}}
+  loadbalancer:
+    type: OS::Octavia::LoadBalancer
+    properties:
+      vip_subnet: {get_resource: subnet}
+      name: webserver_lb
+  loadbalancer_public_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: public-net
+      port_id: {get_attr: [loadbalancer, vip_port_id]}
+  listener:
+    type: OS::Octavia::Listener
+    properties:
+      name: webserver_listener
+      protocol: HTTP
+      protocol_port: 80
+      loadbalancer: {get_resource: loadbalancer}
+  loadbalancer_pool:
+    type: OS::Octavia::Pool
+    properties:
+      lb_algorithm: ROUND_ROBIN
+      protocol: HTTP
+      listener: {get_resource: listener}
+  loadbalancer_healthmonitor:
+    type: OS::Octavia::HealthMonitor
+    properties:
+      delay: 5
+      max_retries: 3
+      pool: {get_resource: loadbalancer_pool}
+      timeout: 15
+      type: HTTP
+      http_method: GET
+      expected_codes: 200
+
+outputs:
+  loadbalancer_floating_ip:
+    value: {get_attr: [loadbalancer_public_ip, floating_ip_address]}
