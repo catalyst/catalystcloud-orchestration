@@ -1,8 +1,12 @@
+# Nextcloud
+
 This directory contains the terraform and heat scripts for running Nextcloud.
 
 Nextcloud is a free and open source suite of client-server software which 
 manages the creation and hosting of files. It is becoming a popular alternative
 to similar software such as Dropbox and Google Drive.
+
+**It is highly recommended you start the Nextcloud container with a volume otherwise you will lose all your data should you destroy or reboot the instance**
 
 To run terraform and create a Nextcloud instance **with an existing volume:**
 
