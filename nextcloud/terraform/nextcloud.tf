@@ -29,7 +29,7 @@ variable "domain_name" {
 variable "ddns_script_url" {
   description = "URL of a script that will configure update ddns called as ./ddns-update.sh <hostname> <ip> <password>)"
   type = string
-  default = "https://raw.githubusercontent.com/yvonnewat/catalystcloud-orchestration/new/nextcloud-tutorial-resources/tools/ddns/namecheap/ddns-update.sh"
+  default = "https://raw.githubusercontent.com/catalyst-cloud/catalystcloud-orchestration/master/tools/ddns/namecheap/ddns-update.sh"
 }
 
 variable "ddns_password" {
@@ -42,7 +42,7 @@ variable "ddns_password" {
 variable "setup_script_url" {
   description = "URL of a script that will configure docker containers (called as ./setup-script.sh <host_name> <domain_name> <ddns_password> <ip_address>)"
   type = string
-  default = "https://raw.githubusercontent.com/yvonnewat/catalystcloud-orchestration/new/nextcloud-tutorial-resources/tools/containers/setup-script.sh"
+  default = "https://raw.githubusercontent.com/catalyst-cloud/catalystcloud-orchestration/master/tools/containers/setup-script.sh"
 }
 
 variable "file_upload_size" {
