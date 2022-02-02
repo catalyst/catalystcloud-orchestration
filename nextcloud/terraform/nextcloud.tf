@@ -27,8 +27,7 @@ variable "domain_name" {
 }
 
 variable "ddns_script_url" {
-  description = "URL of a script that will configure update ddns
-  (called as ./ddns-script.sh <hostname> <ip> <password>)"
+  description = "URL of a script that will configure update ddns called as ./ddns-update.sh <hostname> <ip> <password>)"
   type = string
   default = "https://raw.githubusercontent.com/yvonnewat/catalystcloud-orchestration/new/nextcloud-tutorial-resources/tools/ddns/namecheap/ddns-update.sh"
 }
@@ -41,9 +40,7 @@ variable "ddns_password" {
 }
 
 variable "setup_script_url" {
-  description = "URL of a script that will configure docker containers
-  (called as ./setup-script.sh <host_name> <domain_name> <ddns_password>
-  <ip_address>)"
+  description = "URL of a script that will configure docker containers (called as ./setup-script.sh <host_name> <domain_name> <ddns_password> <ip_address>)"
   type = string
   default = "https://raw.githubusercontent.com/yvonnewat/catalystcloud-orchestration/new/nextcloud-tutorial-resources/tools/containers/setup-script.sh"
 }
@@ -152,8 +149,7 @@ resource "openstack_networking_secgroup_rule_v2" "nextcloud_security_group_rule3
 resource "openstack_networking_port_v2" "nextcloud_port" {
   name = "nextcloud_port"
   network_id = openstack_networking_network_v2.nextcloud_network.id
-  security_group_ids = [ openstack_networking_secgroup_v2.
-  nextcloud_security_grp.id ]
+  security_group_ids = [ openstack_networking_secgroup_v2.nextcloud_security_grp.id ]
   fixed_ip {
     subnet_id = openstack_networking_subnet_v2.nextcloud_subnet.id
   }
@@ -194,8 +190,7 @@ resource "openstack_compute_instance_v2" "qa_server" {
   }
    block_device {
      delete_on_termination = false
-     uuid = var.volume_uuid != "" ? var.volume_uuid :
-      openstack_blockstorage_volume_v2.nextcloud_volume[0].id
+     uuid = var.volume_uuid != "" ? var.volume_uuid : openstack_blockstorage_volume_v2.nextcloud_volume[0].id
      source_type = "volume"
      destination_type = "volume"
      boot_index = 1

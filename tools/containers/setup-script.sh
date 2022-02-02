@@ -6,7 +6,7 @@ ddns_password=$3
 ip_address=$4
 file_upload_size=$5
 
-bash -x ddns-update.sh $host_name $domain_name $ip_address $ddns_password 
+bash -x ddns-script.sh $host_name $domain_name $ip_address $ddns_password 
 
 # DNS propagation delay
 sleep 1m
@@ -19,7 +19,7 @@ chmod 666 /tmp/proxy.conf  # Change file permissions
 mkdir /data
 if [[ "$(blkid -s TYPE -o value /dev/vdb)" == "" ]]; then
   mkfs.ext4 /dev/vdb
-]]
+fi
 mount /dev/vdb /data
 
 # Pull containers
