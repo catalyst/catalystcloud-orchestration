@@ -109,3 +109,6 @@ outputs:
   public_ip_address:
     description: Public IP address
     value: { get_attr: [ nextcloud-floating-ip, floating_ip_address ] }
+  hostname:
+    description: Address of site
+    value: { list_join: ['', ['https://', {get_param: hostname} , '.', {get_param: domainname}]] }

@@ -195,7 +195,6 @@ resource "openstack_compute_instance_v2" "qa_server" {
     ddns_password = var.ddns_password,
     ddns_script_url = var.ddns_script_url,
     ip_address = openstack_networking_floatingip_v2.nextcloud_floating_ip.address,
-    setup_script_url = var.setup_script_url,
     file_upload_size = var.file_upload_size
     })
 }
@@ -203,3 +202,8 @@ resource "openstack_compute_instance_v2" "qa_server" {
 output "floating_ip" {
   value = openstack_networking_floatingip_v2.nextcloud_floating_ip.address
 }
+
+output "host_name" {
+  value = "https://${ var.host_name }.${ var.domain_name }"
+}
+
