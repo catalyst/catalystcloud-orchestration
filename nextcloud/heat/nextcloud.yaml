@@ -15,8 +15,8 @@ parameters:
     default: none
   ddns_script_url:
     type: string
-    description: The URL of a script that will configure update ddns (called as ./ddns-script <hostname> <domainname> <ip> <password>).
-    default: https://raw.githubusercontent.com/catalystcloud/catalystcloud-orchestration/master/tools/ddns/namecheap/ddns-update.sh
+    description: The URL of a script that will configure update ddns (called as ./ddns-script <hostname> <domainname> <ip_address> <password>).
+    default: "https://raw.githubusercontent.com/catalyst-cloud/catalystcloud-orchestration/master/tools/ddns/namecheap/ddns-update.sh"
   ddns_password:
     type: string
     description: The password to use in ddns script.
@@ -25,6 +25,7 @@ parameters:
   file_upload_size:
     type: string
     description: The maximum upload size of files to the Nextcloud instance.
+    
     default: "1024m"
 resources:
   nextcloud-network:

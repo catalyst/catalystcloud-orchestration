@@ -29,7 +29,7 @@ variable "domain_name" {
 variable "ddns_script_url" {
   description = "URL of a script that will configure update ddns called as ./ddns-update.sh <hostname> <ip> <password>)"
   type = string
-  default = "https://raw.githubusercontent.com/catalystcloud/catalystcloud-orchestration/master/tools/ddns/namecheap/ddns-update.sh"
+  default = "https://raw.githubusercontent.com/catalyst-cloud/catalystcloud-orchestration/master/tools/ddns/namecheap/ddns-update.sh"
 }
 
 variable "ddns_password" {
