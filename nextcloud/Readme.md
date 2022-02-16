@@ -15,7 +15,7 @@ To run heat and create a Nextcloud instance, **note: this will create a volume f
 ```shell
 openstack stack create -t nextcloud.yaml nextcloud-stack --parameter hostname="<your-host-name>" --parameter domainname="<your-domain-name>" --parameter ddns_password="<your-ddns-password>" --parameter keyname="<your-key-name>" --parameter ddns_script_url="<your-ddns-script-url>"
 ```
-Note: The ddns script url you use is dependent on your domain name provider.
+Note: The ddns script url you use is dependent on your domain name provider. See tools/ddns for the scripts available.
 
 # Terraform 
 
