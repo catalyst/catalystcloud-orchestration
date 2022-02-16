@@ -1,0 +1,111 @@
+description: Template for using heat to create a Nextcloud instance
+heat_template_version: 2015-04-30
+parameters:
+  keyname:
+    type: string
+    description: The name of the keypair used to connect to the server.
+    default: none
+  hostname:
+    type: string
+    description: The host name to associate with IP address.
+    default: none
+  domainname:
+    type: string
+    description: The domain name to associate with IP address.
+    default: none
+  ddns_script_url:
+    type: string
+    description: The URL of a script that will configure update ddns (called as ./ddns-script <hostname> <domainname> <ip> <password>).
+    default: none
+  ddns_password:
+    type: string
+    description: The password to use in ddns script.
+    hidden: true
+    default: none
+  file_upload_size:
+    type: string
+    description: The maximum upload size of files to the Nextcloud instance.
+    default: "1024m"
+resources:
+  nextcloud-network:
+    type: OS::Neutron::Net
+  nextcloud-router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info: { network: public-net }
+  nextcloud-subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      cidr: "10.0.0.7/24"
+      network: { get_resource: nextcloud-network }
+  nextcloud-interface:  #attach router to subnet
+    type: OS::Neutron::RouterInterface
+    properties:
+      router: { get_resource: nextcloud-router }
+      subnet: { get_resource: nextcloud-subnet }
+  nextcloud-security-group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      rules: [{"direction": "ingress",
+      "port_range_min": 80,
+      "port_range_max": 80,
+      "protocol": "tcp"},                              
+      {"direction": "ingress",
+      "port_range_min": 443,
+      "port_range_max": 443,
+      "protocol": "tcp"},
+      {"direction": "ingress",
+      "port_range_min": 22,
+      "port_range_max": 22,
+      "protocol": "tcp"}] 
+  nextcloud-port:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_resource: nextcloud-network }
+      security_groups: [{get_resource: nextcloud-security-group}]     
+  nextcloud-floating-ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: "public-net"  
+  associate-floating-ip:
+    type: OS::Neutron::FloatingIPAssociation
+    depends_on: [nextcloud-interface]
+    properties:
+      floatingip_id: { get_resource: nextcloud-floating-ip }
+      port_id: { get_resource: nextcloud-port }
+  nextcloud-volume:
+    type: OS::Cinder::Volume
+    properties:
+      size: 10
+  nextcloud-server:
+    type: OS::Nova::Server
+    depends_on: [nextcloud-interface, associate-floating-ip, nextcloud-floating-ip, 
+    nextcloud-port, nextcloud-security-group, nextcloud-network, nextcloud-router, nextcloud-subnet,
+    nextcloud-volume]
+    properties:
+      key_name: { get_param: keyname }
+      image: d8648a86-dc5d-45cb-8339-d4537dce4078 #ubuntu-20.04-x86_64
+      flavor: 0ba691d3-3ff5-4403-843a-c7f8ff61ae4f #c1.c4r4
+      networks: 
+      - port: { get_resource: nextcloud-port }
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: { get_file: cloud-init-nextcloud.yaml }
+          params:
+            $hostname: { get_param: hostname }
+            $domainname: { get_param: domainname }
+            $ddns_script_url: { get_param: ddns_script_url }
+            $ddns_password: { get_param: ddns_password }
+            $file_upload_size: { get_param: file_upload_size }
+            $volume_uuid: { get_resource: nextcloud-volume }
+            $ip_address: { get_attr: [ nextcloud-floating-ip, floating_ip_address ] }
+  nextcloud-volume-attachment:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      instance_uuid: { get_resource: nextcloud-server }
+      volume_id: { get_resource: nextcloud-volume }
+outputs:
+  public_ip_address:
+    description: Public IP address
+    value: { get_attr: [ nextcloud-floating-ip, floating_ip_address ] }

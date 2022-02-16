@@ -10,8 +10,16 @@ write_files:
   - path: /etc/nginx-proxy.conf
     permissions: '0644'
     content: |
-       client_max_body_size ${ file_upload_size };
-       proxy_read_timeout 600s;
+      client_max_body_size $file_upload_size;
+      proxy_read_timeout 600s;
+  - path: /setup/format-volume.sh
+    permissions: '0755'
+    content: |
+      volume_used=$1
+      mkdir /data
+      if [[ "$(blkid -s TYPE -o value $volume_used)" == "" ]]; then
+      mkfs.ext4 $volume_used
+      fi 
   - path: /etc/systemd/system/format-volume@.service
     permissions: '0644'
     content: |
@@ -27,14 +35,6 @@ write_files:
 
       [Install]
       WantedBy=multi-user.target
-  - path: /setup/format-volume.sh
-    permissions: '0755'
-    content: |
-      volume_used=$1
-      mkdir /data
-      if [[ "$(blkid -s TYPE -o value $volume_used)" == "" ]]; then
-      mkfs.ext4 $volume_used
-      fi 
   - path: /etc/systemd/system/data.mount
     permissions: '0644'
     content: |
@@ -118,24 +118,23 @@ write_files:
       WantedBy=multi-user.target   
 
 runcmd:
-  - [ wget, "${ ddns_script_url }" ]
+  - [ wget, $ddns_script_url ]
   - [ mv, ddns-update.sh, /setup ]
   - [ chmod, +x, /setup/ddns-update.sh ]
-  - [ ip_address=$(ec2metadata --public-ipv4) ]
-  - [ .//setup/ddns-update.sh, ${ host_name }, ${ domain_name }, ${ ip_address }, ${ ddns_password } ]
+  - [ ./setup/ddns-update.sh, $hostname, $domainname, $ip_address, $ddns_password ]
   - [ cd, /root ]
   - [ cd, /etc/systemd/system ]
   - [ systemctl, daemon-reload ]
   - [ systemctl, enable, format-volume@vdb.service ]
   - [ systemctl, enable, data.mount ]
   - [ systemctl, enable, nginx-start.service ]
-  - [ systemctl, enable, acme-companion-start@${ domain_name }.service ] 
-  - [ systemctl, enable, nextcloud-start@${ host_name }.${ domain_name }.service ]
+  - [ systemctl, enable, acme-companion-start@$domainname.service ] 
+  - [ systemctl, enable, nextcloud-start@$hostname.$domainname.service ]
   - [ systemctl, start, format-volume@vdb.service ]
   - [ systemctl, start, data.mount ]
   - [ systemctl, start, --no-block, nginx-start.service ] 
-  - [ systemctl, start, --no-block, acme-companion-start@${ domain_name }.service ]  
-  - [ systemctl, start, --no-block, nextcloud-start@${ host_name }.${ domain_name }.service ]
+  - [ systemctl, start, --no-block, acme-companion-start@$domainname.service ]  
+  - [ systemctl, start, --no-block, nextcloud-start@$hostname.$domainname.service ]
   - [ touch, /deploy-complete ]
 apt:
   sources:
