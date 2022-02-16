@@ -10,7 +10,7 @@ to similar software such as Dropbox and Google Drive.
 
 # Heat 
 
-To run heat and create a Nextcloud instance **note: this will create a volume for you**
+To run heat and create a Nextcloud instance, **note: this will create a volume for you**
 
 ```shell
 openstack stack create -t nextcloud.yaml nextcloud-stack --parameter hostname="<your-host-name>" --parameter domainname="<your-domain-name>" --parameter ddns_password="<your-ddns-password>" --parameter keyname="<your-key-name>" --parameter ddns_script_url="<your-ddns-script-url>"
@@ -25,7 +25,7 @@ To run terraform and create a Nextcloud instance **with an existing volume:**
 
 ```shell
 terraform init
-terraform apply --var domain_name="<your-domain-name>" --var host_name="<your-host-name>" --var ddns_password="<your-ddns-password>" --var file_upload_size="<size in mega-bytes>m" --var keyname="<your-key-name>" --var volume_uuid="<volume id>"
+terraform apply --var domain_name="<your-domain-name>" --var host_name="<your-host-name>" --var ddns_password="<your-ddns-password>" --var file_upload_size="<size in mega-bytes>m" --var keyname="<your-key-name>" --var volume_uuid="<volume id> --var ddns-script-url="<your-ddns-script-url>"
 ```
 
 To run terraform and create a Nextcloud instance **without an existing volume:**
@@ -34,7 +34,7 @@ To run terraform and create a Nextcloud instance **without an existing volume:**
 
 ```shell
 terraform init
-terraform apply --var domain_name="<your-domain-name>" --var host_name="<your-host-name>" --var ddns_password="<your-ddns-password>" --var file_upload_size="<size in mega-bytes>m" --var keyname="<your-key-name>"
+terraform apply --var domain_name="<your-domain-name>" --var host_name="<your-host-name>" --var ddns_password="<your-ddns-password>" --var file_upload_size="<size in mega-bytes>m" --var keyname="<your-key-name>" --var ddns-script-url="<your-ddns-script-url>"
 ```
 
 Note:
