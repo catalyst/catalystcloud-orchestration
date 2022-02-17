@@ -25,8 +25,15 @@ parameters:
   file_upload_size:
     type: string
     description: The maximum upload size of files to the Nextcloud instance.
-    
     default: "1024m"
+  image_type:
+    type: string
+    description: The id of the image to use for instance creation.
+    default: "d8648a86-dc5d-45cb-8339-d4537dce4078" #ubuntu-20.04-x86_64
+  flavor_type:
+    type: string
+    description: The id of the flavor to use for instance creation.
+    default: "0ba691d3-3ff5-4403-843a-c7f8ff61ae4f" #c1.c4r4
 resources:
   nextcloud-network:
     type: OS::Neutron::Net
@@ -85,8 +92,8 @@ resources:
     nextcloud-volume]
     properties:
       key_name: { get_param: keyname }
-      image: d8648a86-dc5d-45cb-8339-d4537dce4078 #ubuntu-20.04-x86_64
-      flavor: 0ba691d3-3ff5-4403-843a-c7f8ff61ae4f #c1.c4r4
+      image: { get_param: image_type }
+      flavor: { get_param: flavor_type }
       networks: 
       - port: { get_resource: nextcloud-port }
       user_data_format: RAW
